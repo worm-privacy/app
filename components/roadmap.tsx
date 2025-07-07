@@ -5,7 +5,7 @@ export function Roadmap() {
   const phases = [
     {
       phase: 1,
-      title: "Launch zk-SNARK burn circuit & BURNTH",
+      title: "Launch zk-SNARK burn circuit & WORM",
       status: "complete",
       description: "Core privacy infrastructure and burn receipt system",
     },

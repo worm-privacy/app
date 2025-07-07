@@ -6,7 +6,7 @@ export function UseCases() {
     {
       icon: Shield,
       title: "Anonymous Payments",
-      description: "Burn ETH → get BURNTH → use in WORM-based payment networks with complete privacy",
+      description: "Burn ETH → get BETH → use in WORM-based payment networks with complete privacy",
       color: "text-green-400",
     },
     {
@@ -85,7 +85,7 @@ export function UseCases() {
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                      <span className="font-semibold text-green-300 font-mono">BURNTH</span>
+                      <span className="font-semibold text-green-300 font-mono">BETH</span>
                     </div>
                   </td>
                   <td className="py-4 px-4 text-gray-300 font-mono">Proof of ETH burn (private)</td>
@@ -101,7 +101,7 @@ export function UseCases() {
                       <span className="font-semibold text-green-300 font-mono">WORM</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 text-gray-300 font-mono">Scarce asset minted from BURNTH</td>
+                  <td className="py-4 px-4 text-gray-300 font-mono">Scarce asset minted from BETH</td>
                   <td className="py-4 px-4 text-center">
                     <span className="text-green-400 font-mono">✅ Yes</span>
                   </td>

@@ -69,7 +69,7 @@ export function Tokenomics() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-semibold text-white">Example Block:</p>
-                  <p className="text-xs text-gray-400 font-mono">3 users burn 1, 2, and 7 BURNTH (total: 10)</p>
+                  <p className="text-xs text-gray-400 font-mono">3 users burn 1, 2, and 7 BETH (total: 10)</p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center">
@@ -123,7 +123,7 @@ export function Tokenomics() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-300">
-                As WORM gains value, BURNTH demand rises, increasing the ETH burn rate
+                As WORM gains value, BETH demand rises, increasing the ETH burn rate
               </p>
             </CardContent>
           </Card>

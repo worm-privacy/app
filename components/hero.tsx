@@ -27,7 +27,7 @@ export function Hero() {
 
           <p className="text-lg text-gray-400 mb-8 max-w-4xl mx-auto">
             WORM transforms irreversible ETH burns into an economically meaningful, scarce asset using zk-SNARKs. Mint
-            WORM by consuming BURNTH—private proof-of-burn receipts that shield your identity while proving destruction.
+            WORM by burning ETH—private proof-of-burn receipts that shield your identity while proving destruction.
           </p>
         </div>
 

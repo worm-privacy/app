@@ -6,7 +6,7 @@ export function Resources() {
   const resources = [
     {
       icon: Github,
-      title: "BURNTH GitHub",
+      title: "WORM GitHub",
       description: "Open source contracts and zk-circuits",
       link: "#",
       color: "text-gray-400",
