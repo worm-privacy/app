@@ -5,6 +5,7 @@ import { Tokenomics } from "@/components/tokenomics"
 import { UseCases } from "@/components/use-cases"
 import { Roadmap } from "@/components/roadmap"
 import { Resources } from "@/components/resources"
+import { Team } from "@/components/team"
 
 export default function Home() {
   return (
@@ -15,6 +16,7 @@ export default function Home() {
       <Tokenomics />
       <UseCases />
       <Roadmap />
+      <Team />
       <Resources />
     </div>
   )
