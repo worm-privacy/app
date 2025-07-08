@@ -65,10 +65,10 @@ export function Privacy() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="space-y-3">
-              <h4 className="font-semibold text-green-400">ZK Circuits</h4>
+              <h4 className="font-semibold text-green-400">Zero Knowledge Proofs</h4>
               <div className="space-y-1 text-sm text-green-300 font-mono">
                 <p>• Circom & SnarkJS</p>
-                <p>• MiMC7 Hashing</p>
+                <p>• Poseidon Hashing</p>
                 <p>• Groth16 Proof System</p>
               </div>
             </div>

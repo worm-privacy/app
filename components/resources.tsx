@@ -8,28 +8,28 @@ export function Resources() {
       icon: Github,
       title: "WORM GitHub",
       description: "Open source contracts and zk-circuits",
-      link: "#",
+      link: "https://github.com/worm-privacy",
       color: "text-gray-400",
     },
     {
       icon: FileText,
       title: "EIP-7503 Specification",
       description: "Private Proof-of-Burn standard",
-      link: "#",
+      link: "https://eip7503.org",
       color: "text-blue-400",
     },
     {
       icon: Book,
       title: "ZK Circuit Documentation",
       description: "Technical implementation details",
-      link: "#",
+      link: "https://github.com/worm-privacy/proof-of-burn",
       color: "text-purple-400",
     },
     {
       icon: Twitter,
       title: "Project Updates",
       description: "Latest news and announcements",
-      link: "#",
+      link: "https://x.com/WormCash7503",
       color: "text-cyan-400",
     },
   ]
@@ -56,6 +56,7 @@ export function Resources() {
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-gray-400 text-sm mb-4">{resource.description}</p>
+                <a href={`${resource.link}`}>
                 <Button
                   variant="outline"
                   size="sm"
@@ -64,6 +65,7 @@ export function Resources() {
                   <ExternalLink className="w-4 h-4 mr-2" />
                   View
                 </Button>
+                </a>
               </CardContent>
             </Card>
           ))}
@@ -96,7 +98,7 @@ export function Resources() {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-gray-400 text-sm">
               <p>
-                © 2024 <span className="font-mono text-green-400">WORM Protocol</span>. MIT License - Fully Open Source
+                © 2025 <span className="font-mono text-green-400">WORM Protocol</span>. MIT License - Fully Open Source
               </p>
             </div>
             <div className="flex items-center gap-4">

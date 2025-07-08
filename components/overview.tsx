@@ -8,7 +8,7 @@ export function Overview() {
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6">Protocol Architecture</h2>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            WORM operates through a two-token system: BETH as private burn receipts and WORM as the scarce terminal
+            The WORM protocol operates through a two-token system: BETH as private burn receipts and WORM as the scarce terminal
             asset
           </p>
         </div>
@@ -82,7 +82,7 @@ export function Overview() {
                   <div className="w-2 h-2 bg-green-400 rounded-full mt-2 flex-shrink-0" />
                   <div>
                     <h4 className="font-semibold text-white">Competitive Minting</h4>
-                    <p className="text-sm text-gray-400">Fixed emissions per block split pro-rata among burners</p>
+                    <p className="text-sm text-gray-400">Fixed emissions per epoch split pro-rata among burners</p>
                   </div>
                 </div>
 
@@ -108,7 +108,7 @@ export function Overview() {
                   <strong className="font-mono">WORM_i = E × (B_i / B_total)</strong>
                 </p>
                 <p className="text-xs text-gray-400 mt-1 font-mono">
-                  Your share = Block emissions × (Your BETH / Total BETH)
+                  Your share = Epoch emissions × (Your BETH / Total BETH)
                 </p>
               </div>
             </CardContent>

@@ -10,11 +10,11 @@ export function Hero() {
         <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_48%,rgba(34,197,94,0.05)_49%,rgba(34,197,94,0.05)_51%,transparent_52%)] bg-[length:20px_20px]" />
       </div>
 
-      <div className="container mx-auto px-6 text-center relative z-10">
-        <div className="mb-8">
+      <div className="container mx-auto px-6 py-12 text-center relative z-10">
+        <div className="m-8">
           <div className="inline-flex items-center gap-2 bg-green-900/30 border border-green-700 rounded-full px-4 py-2 text-sm text-green-300 mb-6">
             <Zap className="w-4 h-4 text-green-400" />
-            <span className="font-mono">Powered by EIP-7503 Private Proof-of-Burn</span>
+            <span className="font-mono">Powered by EIP-7503</span>
           </div>
 
           <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-green-400 via-green-300 to-green-500 bg-clip-text text-transparent font-mono">
@@ -26,26 +26,29 @@ export function Hero() {
           </p>
 
           <p className="text-lg text-gray-400 mb-8 max-w-4xl mx-auto">
-            WORM transforms irreversible ETH burns into an economically meaningful, scarce asset using zk-SNARKs. Mint
-            WORM by burning ETH—private proof-of-burn receipts that shield your identity while proving destruction.
+            Transform irreversible ETH burns into an economically meaningful, scarce asset using zk-SNARKs!
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <Button
-            size="lg"
-            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold border-0"
-          >
-            Read Whitepaper
-            <ArrowRight className="ml-2 w-4 h-4" />
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
-          >
-            View Contracts
-          </Button>
+          <a href="https://github.com/worm-privacy/proof-of-burn">
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold border-0"
+            >
+              Read Whitepaper
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+          </a>
+          <a href="https://github.com/worm-privacy/proof-of-burn">
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
+            >
+              View Contracts
+            </Button>
+          </a>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
@@ -72,6 +75,6 @@ export function Hero() {
           </div>
         </div>
       </div>
-    </section>
+    </section >
   )
 }
