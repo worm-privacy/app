@@ -57,14 +57,14 @@ export function Resources() {
               <CardContent className="text-center">
                 <p className="text-gray-400 text-sm mb-4">{resource.description}</p>
                 <a href={`${resource.link}`}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  View
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    View
+                  </Button>
                 </a>
               </CardContent>
             </Card>
@@ -78,19 +78,23 @@ export function Resources() {
           <p className="text-lg text-green-300 mb-6">Welcome to the burn economy</p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold"
-            >
-              Start Burning ETH
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
-            >
-              Join Community
-            </Button>
+            <a href="https://github.com/worm-privacy/miner">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold"
+              >
+                Start Burning ETH
+              </Button>
+            </a>
+            <a href="https://t.me/+HYMJx8QmCBw1NWRk">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
+              >
+                Join Telegram Group
+              </Button>
+            </a>
           </div>
         </div>
 
@@ -108,6 +112,6 @@ export function Resources() {
           </div>
         </footer>
       </div>
-    </section>
+    </section >
   )
 }
