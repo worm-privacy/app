@@ -6,11 +6,13 @@ import { UseCases } from "@/components/use-cases"
 import { Roadmap } from "@/components/roadmap"
 import { Resources } from "@/components/resources"
 import { Team } from "@/components/team"
+import { BurnActivity } from "@/components/burn-activity"
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Hero />
+      <BurnActivity />
       <Overview />
       <Privacy />
       <Tokenomics />
