@@ -31,12 +31,12 @@ export function Hero() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <a href="https://github.com/worm-privacy/proof-of-burn">
+          <a href="https://discord.gg/Z9TjZhm6qQ">
             <Button
               size="lg"
               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold border-0"
             >
-              Read Whitepaper
+              Join Discord
               <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </a>
@@ -46,7 +46,7 @@ export function Hero() {
               variant="outline"
               className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
             >
-              View Contracts
+              View Circuits
             </Button>
           </a>
         </div>
@@ -63,7 +63,7 @@ export function Hero() {
           <div className="bg-green-950/30 border border-green-800 rounded-lg p-6">
             <Coins className="w-8 h-8 text-green-400 mb-4 mx-auto" />
             <h3 className="text-lg font-semibold mb-2 text-green-300">Cryptographically Scarce</h3>
-            <p className="text-gray-400 text-sm">Hard emission caps per block ensure permanent scarcity</p>
+            <p className="text-gray-400 text-sm">Hard emission caps per epoch ensure permanent scarcity</p>
           </div>
 
           <div className="bg-green-950/30 border border-green-800 rounded-lg p-6">

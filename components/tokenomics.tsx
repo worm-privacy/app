@@ -23,18 +23,18 @@ export function Tokenomics() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-green-900/50 rounded-lg p-4">
-                  <p className="text-2xl font-bold text-green-300 font-mono">100</p>
-                  <p className="text-sm text-gray-400">WORM per block</p>
+                  <p className="text-2xl font-bold text-green-300 font-mono">50</p>
+                  <p className="text-sm text-gray-400">WORM per epoch</p>
                 </div>
                 <div className="bg-green-900/50 rounded-lg p-4">
-                  <p className="text-2xl font-bold text-green-300 font-mono">0</p>
-                  <p className="text-sm text-gray-400">Premine</p>
+                  <p className="text-2xl font-bold text-green-300 font-mono">30 minutes</p>
+                  <p className="text-sm text-gray-400">Epoch time</p>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Fixed Cap per Block</span>
+                  <span className="text-gray-400">Fixed Cap per Epoch</span>
                   <span className="text-green-400">✓</span>
                 </div>
                 <div className="flex justify-between">
@@ -68,7 +68,7 @@ export function Tokenomics() {
 
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-semibold text-white">Example Block:</p>
+                  <p className="text-sm font-semibold text-white">Example epoch:</p>
                   <p className="text-xs text-gray-400 font-mono">3 users burn 1, 2, and 7 BETH (total: 10)</p>
                 </div>
 
@@ -95,11 +95,11 @@ export function Tokenomics() {
           <Card className="bg-gradient-to-br from-green-900/40 to-green-800/40 border-green-800/50">
             <CardHeader>
               <TrendingUp className="w-8 h-8 text-red-400 mb-2" />
-              <CardTitle>Block Contention</CardTitle>
+              <CardTitle>Epoch Contention</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-300">
-                More burners in a block means smaller individual shares, creating strategic timing incentives
+                More burners in a epoch means smaller individual shares, creating strategic timing incentives
               </p>
             </CardContent>
           </Card>
@@ -111,7 +111,7 @@ export function Tokenomics() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-gray-300">
-                Users monitor burn activity and choose optimal blocks to maximize WORM yield
+                Users monitor burn activity and choose optimal epochs to maximize WORM yield
               </p>
             </CardContent>
           </Card>

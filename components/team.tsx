@@ -8,12 +8,20 @@ export function Team() {
   const teamMembers = [
     {
       name: "Keyvan Kambakhsh",
-      role: "Protocol Architect",
+      role: "Cofounder | Protocol Architect",
       description:
         "Core developer and architect of the WORM protocol, specializing in zero-knowledge cryptography and privacy-preserving systems.",
       github: "https://github.com/keyvank",
-      avatar: "https://avatars.githubusercontent.com/u/4275654?v=4",
+      avatar: "/keyvan.jpeg",
     },
+    {
+      name: "Shahriar Ebrahimi",
+      role: "Cofounder | Applied Cryptography",
+      description:
+        "Applied Cryptographer, mostly focused on Zero-Knowledge Proofs and Multi-Party Computation.",
+      github: "https://github.com/lovely-necromancer",
+      avatar: "/shahriar.jpg",
+    }
   ]
 
   return (
