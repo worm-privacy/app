@@ -20,8 +20,8 @@ export function BurnActivity() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const WORM_CONTRACT_ADDRESS = "0x557E9e7Eed905C7d21183Ec333dB2a8B1e34A85F"
-  const BETH_CONTRACT_ADDRESS = "0x6fa638704a839B28C5B7168C8916AdD9F75CDEEc"
+  const WORM_CONTRACT_ADDRESS = "0xC89Ce4735882C9F0f0FE26686c53074E09B0D550"
+  const BETH_CONTRACT_ADDRESS = "0x1b218670EcaDA5B15e2cE1879074e5D903b55334"
   const SEPOLIA_RPC = "https://sepolia.drpc.org"
 
   // ABI for the functions we need
