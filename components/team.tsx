@@ -21,6 +21,11 @@ export function Team() {
         "Applied Cryptographer, mostly focused on Zero-Knowledge Proofs and Multi-Party Computation.",
       github: "https://github.com/lovely-necromancer",
       avatar: "/shahriar.jpg",
+    },
+    {
+      name: "Artem Svietlieishyi",
+      role: "Community Lead",
+      description: "Experienced miner and early crypto participant with deep knowledge of blockchain ecosystems and community growth."
     }
   ]
 
