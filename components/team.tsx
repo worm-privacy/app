@@ -28,6 +28,13 @@ export function Team() {
       description: "Experienced miner and early crypto participant with deep knowledge of blockchain ecosystems and community growth.",
       github: "https://github.com/lovely-necromancer",
       avatar: "/artem.jpeg",
+    },
+    {
+      name: "Artem Svietlieishyi",
+      role: "Community Lead",
+      description: "Experienced miner and early crypto participant with deep knowledge of blockchain ecosystems and community growth.",
+      github: "https://github.com/LightFromHeaven007",
+      avatar: "/artem.jpeg",
     }
   ]
 
