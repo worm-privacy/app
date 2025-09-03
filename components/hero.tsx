@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Zap, Shield, Coins } from "lucide-react"
+import { ArrowRight, Zap, Shield, Coins, DollarSign } from "lucide-react"
 
 export function Hero() {
   return (
@@ -31,6 +31,16 @@ export function Hero() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <a href="https://juicebox.money/v4/eth:165?tabid=about">
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
+            >
+              Fund us!
+              <DollarSign className="w-4 h-4" />
+            </Button>
+          </a>
           <a href="https://discord.gg/Z9TjZhm6qQ">
             <Button
               size="lg"
@@ -49,6 +59,7 @@ export function Hero() {
               View Circuits
             </Button>
           </a>
+
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
