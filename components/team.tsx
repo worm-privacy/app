@@ -30,13 +30,6 @@ export function Team() {
       avatar: "/artem.jpeg",
     },
     {
-      name: "Artem Svietlieishyi",
-      role: "Community Lead",
-      description: "Experienced miner and early crypto participant with deep knowledge of blockchain ecosystems and community growth.",
-      github: "https://github.com/LightFromHeaven007",
-      avatar: "/artem.jpeg",
-    },
-    {
       name: "Sarah Kaviani",
       role: "Software Engineer",
       description: "I'm a software engineer passionate about blockchain, especially zero-knowledge proofs, and I enjoy building cool, privacy-focused solutions",
