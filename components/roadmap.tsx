@@ -17,28 +17,28 @@ export function Roadmap() {
     },
     {
       phase: 3,
-      title: "DEX & Oracle Integration",
-      status: "ongoing",
-      description: "Trading infrastructure and price discovery mechanisms",
+      title: "Lindwurm Testnet",
+      status: "complete",
+      description: "Very first testnet of WORM, with a working instance of BETH/WORM",
     },
     {
       phase: 4,
-      title: "Rollup & L2 Expansion",
-      status: "planned",
-      description: "Multi-chain deployment for broader accessibility",
+      title: "Shai-Hulud Testnet",
+      status: "ongoing",
+      description: "The second testnet involves and refactored circuit and partial spends",
     },
     {
       phase: 5,
-      title: "Privacy-Native DeFi Suite",
+      title: "Protocol Audit / Trusted Setup",
       status: "planned",
-      description: "Lending, borrowing, and yield farming with privacy",
+      description: "Auditing of ZK circuits and running a Groth16 trusted setup ceremony",
     },
     {
       phase: 6,
-      title: "DAO Transition + Treasury Disbursement",
+      title: "Mainnet launch",
       status: "planned",
-      description: "Community governance and protocol treasury management",
-    },
+      description: "Launching BETH/WORM tokens on mainnet",
+    }
   ]
 
   const getStatusIcon = (status: string) => {
