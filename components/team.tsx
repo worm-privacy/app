@@ -8,7 +8,7 @@ export function Team() {
   const teamMembers = [
     {
       name: "Keyvan Kambakhsh",
-      role: "Cofounder | Protocol Architect",
+      role: "Founder | Protocol Architect",
       description:
         "Core developer and architect of the WORM protocol, specializing in zero-knowledge cryptography and privacy-preserving systems.",
       github: "https://github.com/keyvank",
@@ -16,7 +16,7 @@ export function Team() {
     },
     {
       name: "Shahriar Ebrahimi",
-      role: "Cofounder | Applied Cryptography",
+      role: "Cryptography Advisor",
       description:
         "Applied Cryptographer, mostly focused on Zero-Knowledge Proofs and Multi-Party Computation.",
       github: "https://github.com/lovely-necromancer",
