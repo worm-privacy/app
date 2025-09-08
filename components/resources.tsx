@@ -29,7 +29,7 @@ export function Resources() {
       icon: Twitter,
       title: "Project Updates",
       description: "Latest news and announcements",
-      link: "https://x.com/WormPrivacy",
+      link: "https://x.com/EIP7503",
       color: "text-cyan-400",
     },
   ]
