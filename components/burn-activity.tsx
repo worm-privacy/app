@@ -2,11 +2,15 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Flame, TrendingUp, Clock, Activity, Coins } from "lucide-react"
+import { useNetwork } from "@/hooks/use-network"
+import { ethers } from "ethers"
 
 interface EpochData {
   epoch: number
   total: string
+  userAmount: string
   isCurrent: boolean
   isPast: boolean
   isFuture: boolean
@@ -19,82 +23,44 @@ export function BurnActivity() {
   const [totalWormMinted, setTotalWormMinted] = useState<string>("0.0000")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [userAddress, setUserAddress] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
 
-  const WORM_CONTRACT_ADDRESS = "0x78eFE1D19d5F5e9AED2C1219401b00f74166A1d9"
-  const BETH_CONTRACT_ADDRESS = "0x1b218670EcaDA5B15e2cE1879074e5D903b55334"
-  const SEPOLIA_RPC = "https://sepolia.drpc.org"
+  const { networkConfig, selectedNetwork } = useNetwork()
 
-  // ABI for the functions we need
   const WORM_CONTRACT_ABI = [
-    {
-      inputs: [],
-      name: "currentEpoch",
-      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-      name: "epochTotal",
-      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "totalSupply",
-      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-      stateMutability: "view",
-      type: "function",
-    },
+    "function currentEpoch() view returns (uint256)",
+    "function epochTotal(uint256) view returns (uint256)",
+    "function totalSupply() view returns (uint256)",
+    "function epochUser(uint256 epoch, address user) public view returns (uint256)",
   ]
 
-  const BETH_CONTRACT_ABI = [
-    {
-      inputs: [],
-      name: "totalSupply",
-      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-      stateMutability: "view",
-      type: "function",
-    },
-  ]
+  const BETH_CONTRACT_ABI = ["function totalSupply() view returns (uint256)"]
 
-  // Simple ABI encoder for function calls
-  const encodeFunctionCall = (abi: any[], functionName: string, params: any[] = []) => {
-    const func = abi.find((f) => f.name === functionName && f.type === "function")
-    if (!func) throw new Error(`Function ${functionName} not found in ABI`)
-
-    // Simple function selector calculation (first 4 bytes of keccak256 hash)
-    const signature = `${functionName}(${func.inputs.map((input: any) => input.type).join(",")})`
-    const selector = keccak256(signature).slice(0, 10) // 0x + 8 hex chars
-
-    // Encode parameters
-    let encodedParams = ""
-    if (params.length > 0) {
-      // For uint256 parameters, pad to 32 bytes
-      encodedParams = params
-        .map((param) => {
-          if (typeof param === "number" || typeof param === "bigint") {
-            return param.toString(16).padStart(64, "0")
-          }
-          return param.toString().padStart(64, "0")
-        })
-        .join("")
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768) // md breakpoint
     }
 
-    return selector + encodedParams
-  }
+    checkScreenSize()
+    window.addEventListener("resize", checkScreenSize)
 
-  // Simple keccak256 implementation (for function selectors)
-  const keccak256 = (input: string) => {
-    // This is a simplified version - in production, use a proper crypto library
-    // For now, we'll use the known function selectors
-    const knownSelectors: { [key: string]: string } = {
-      "currentEpoch()": "0x76671808",
-      "epochTotal(uint256)": "0x1e0e8489",
-      "totalSupply()": "0x18160ddd",
+    return () => window.removeEventListener("resize", checkScreenSize)
+  }, [])
+
+  const getUserAddress = async () => {
+    if (typeof window !== "undefined" && window.ethereum) {
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_accounts" })
+        if (accounts.length > 0) {
+          setUserAddress(accounts[0])
+          return accounts[0]
+        }
+      } catch (error) {
+        console.error("Error getting user address:", error)
+      }
     }
-    return knownSelectors[input] || "0x00000000"
+    return null
   }
 
   const fetchContractData = async () => {
@@ -102,64 +68,61 @@ export function BurnActivity() {
       setLoading(true)
       setError(null)
 
-      // Create a JSON-RPC call using ABI
-      const callContract = async (contractAddress: string, abi: any[], functionName: string, params: any[] = []) => {
-        const data = encodeFunctionCall(abi, functionName, params)
+      const address = await getUserAddress()
 
-        const response = await fetch(SEPOLIA_RPC, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            method: "eth_call",
-            params: [
-              {
-                to: contractAddress,
-                data: data,
-              },
-              "latest",
-            ],
-            id: 1,
-          }),
-        })
+      const rpcUrl = networkConfig.rpcUrls[0]
+      console.log("[v0] Fetching burn activity from:", rpcUrl)
+      console.log("[v0] Using BETH contract:", networkConfig.contracts.beth)
+      console.log("[v0] Using WORM contract:", networkConfig.contracts.worm)
 
-        const result = await response.json()
-        if (result.error) {
-          throw new Error(result.error.message)
-        }
-        return result.result
-      }
+      const provider = new ethers.JsonRpcProvider(rpcUrl)
+      const wormContract = new ethers.Contract(networkConfig.contracts.worm, WORM_CONTRACT_ABI, provider)
+      const bethContract = new ethers.Contract(networkConfig.contracts.beth, BETH_CONTRACT_ABI, provider)
 
       // Get total supply from BETH contract
-      const totalSupplyData = await callContract(BETH_CONTRACT_ADDRESS, BETH_CONTRACT_ABI, "totalSupply")
-      const supply = Number.parseInt(totalSupplyData, 16)
-      setTotalSupply((supply / 1e18).toFixed(4)) // Convert from wei to ETH
+      console.log("[v0] Calling BETH totalSupply()")
+      const bethTotalSupply = await bethContract.totalSupply()
+      setTotalSupply(Number.parseFloat(ethers.formatEther(bethTotalSupply)).toFixed(4))
 
       // Get total WORM minted from WORM contract
-      const wormSupplyData = await callContract(WORM_CONTRACT_ADDRESS, WORM_CONTRACT_ABI, "totalSupply")
-      const wormSupply = Number.parseInt(wormSupplyData, 16)
-      setTotalWormMinted((wormSupply / 1e18).toFixed(4)) // Convert from wei to WORM
+      console.log("[v0] Calling WORM totalSupply()")
+      const wormTotalSupply = await wormContract.totalSupply()
+      setTotalWormMinted(Number.parseFloat(ethers.formatEther(wormTotalSupply)).toFixed(4))
 
       // Get current epoch from WORM contract
-      const currentEpochData = await callContract(WORM_CONTRACT_ADDRESS, WORM_CONTRACT_ABI, "currentEpoch")
-      const current = Number.parseInt(currentEpochData, 16)
+      console.log("[v0] Calling currentEpoch()")
+      const currentEpochResult = await wormContract.currentEpoch()
+      const current = Number(currentEpochResult)
       setCurrentEpoch(current)
 
-      // Fetch data for 5 past, current, and 5 future epochs from WORM contract
+      const epochRange = isMobile ? 2 : 5 // 2 past/future on mobile, 5 on desktop
       const epochs: EpochData[] = []
 
-      for (let i = -5; i <= 5; i++) {
+      for (let i = -epochRange; i <= epochRange; i++) {
         const epoch = current + i
         if (epoch >= 0) {
           try {
-            const totalData = await callContract(WORM_CONTRACT_ADDRESS, WORM_CONTRACT_ABI, "epochTotal", [epoch])
-            const total = Number.parseInt(totalData, 16)
+            console.log(`[v0] Calling epochTotal(${epoch})`)
+            const totalResult = await wormContract.epochTotal(epoch)
+            const total = ethers.formatEther(totalResult)
+
+            let userAmount = "0.0000"
+            if (address) {
+              try {
+                console.log(`[v0] Calling epochUser(${epoch}, ${address})`)
+                const userResult = await wormContract.epochUser(epoch, address)
+                userAmount = ethers.formatEther(userResult)
+                console.log(`[v0] epochUser result for epoch ${epoch}: ${userAmount} BETH`)
+              } catch (err) {
+                console.log(`[v0] epochUser call failed for epoch ${epoch}:`, err)
+                userAmount = "0.0000"
+              }
+            }
 
             epochs.push({
               epoch,
-              total: (total / 1e18).toFixed(4), // Convert from wei to ETH
+              total,
+              userAmount,
               isCurrent: i === 0,
               isPast: i < 0,
               isFuture: i > 0,
@@ -169,6 +132,7 @@ export function BurnActivity() {
             epochs.push({
               epoch,
               total: "0.0000",
+              userAmount: "0.0000",
               isCurrent: i === 0,
               isPast: i < 0,
               isFuture: i > 0,
@@ -179,6 +143,7 @@ export function BurnActivity() {
 
       setEpochData(epochs)
     } catch (err) {
+      console.error("[v0] Error fetching burn activity:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch data")
     } finally {
       setLoading(false)
@@ -191,18 +156,45 @@ export function BurnActivity() {
     // Refresh data every 30 seconds
     const interval = setInterval(fetchContractData, 30000)
     return () => clearInterval(interval)
-  }, [])
+  }, [networkConfig, isMobile])
+
+  const getBlockExplorerUrl = (address: string) => {
+    if (networkConfig.blockExplorerUrls.length > 0) {
+      return `${networkConfig.blockExplorerUrls[0]}/address/${address}`
+    }
+    return "#" // No block explorer for local networks
+  }
+
+  const networkDisplayName = selectedNetwork === "sepolia" ? "Sepolia" : "Anvil"
+  const networkColor = selectedNetwork === "sepolia" ? "text-blue-300" : "text-orange-300"
+
+  const WORM_PER_EPOCH = 50 // Max WORM tokens distributed per epoch
+
+  const calculateWormReward = (userContribution: number, totalContribution: number): number => {
+    if (totalContribution === 0 || userContribution === 0) return 0
+
+    // User's share percentage * max WORM per epoch
+    const userSharePercent = userContribution / totalContribution
+    const estimatedReward = userSharePercent * WORM_PER_EPOCH
+
+    return estimatedReward
+  }
+
+  const gridCols = isMobile ? "grid-cols-5" : "grid-cols-11"
+  const epochRange = isMobile ? 2 : 5
+
+  const truncateAddress = (address: string, isMobile = false) => {
+    if (isMobile) {
+      // On mobile, show first 6 and last 4 characters
+      return `${address.slice(0, 6)}...${address.slice(-4)}`
+    }
+    // On desktop, show more characters
+    return `${address.slice(0, 10)}...${address.slice(-6)}`
+  }
 
   return (
     <section className="py-20 bg-green-950/20">
       <div className="container mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">Live Burn Activity</h2>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            Real-time ETH burn data from Sepolia testnet showing past, current, and projected future epochs
-          </p>
-        </div>
-
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <Card className="bg-green-950/40 border-green-800">
@@ -244,8 +236,10 @@ export function BurnActivity() {
               <Activity className="h-4 w-4 text-green-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-300 font-mono">Sepolia</div>
-              <p className="text-xs text-gray-400 mt-1">Ethereum testnet</p>
+              <div className={`text-2xl font-bold font-mono ${networkColor}`}>{networkDisplayName}</div>
+              <p className="text-xs text-gray-400 mt-1">
+                {selectedNetwork === "sepolia" ? "Ethereum testnet" : "Local development"}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -258,6 +252,11 @@ export function BurnActivity() {
               Epoch Burn Timeline
             </CardTitle>
             <p className="text-sm text-gray-400">ETH consumption across past, current, and future epochs</p>
+            {userAddress ? (
+              <p className="text-xs text-cyan-300">Connected: {truncateAddress(userAddress, isMobile)}</p>
+            ) : (
+              <p className="text-xs text-yellow-300">Connect wallet to see your contributions</p>
+            )}
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -278,21 +277,29 @@ export function BurnActivity() {
             ) : (
               <div className="space-y-4">
                 {/* Timeline Header */}
-                <div className="grid grid-cols-11 gap-2 text-xs text-gray-400 font-mono">
-                  <div className="col-span-5 text-center">Past Epochs</div>
+                <div className={`grid ${gridCols} gap-2 text-xs text-gray-400 font-mono`}>
+                  <div className={`col-span-${epochRange} text-center`}>Past Epochs</div>
                   <div className="text-center">Current</div>
-                  <div className="col-span-5 text-center">Future Epochs</div>
+                  <div className={`col-span-${epochRange} text-center`}>Future Epochs</div>
                 </div>
 
                 {/* Timeline Bars */}
-                <div className="grid grid-cols-11 gap-2">
+                <div className={`grid ${gridCols} gap-2`}>
                   {epochData.map((epoch, index) => {
                     const maxTotal = Math.max(...epochData.map((e) => Number.parseFloat(e.total)))
                     const height = maxTotal > 0 ? (Number.parseFloat(epoch.total) / maxTotal) * 100 : 0
 
+                    const userContribution = Number.parseFloat(epoch.userAmount)
+                    const totalContribution = Number.parseFloat(epoch.total)
+                    const userSharePercent = totalContribution > 0 ? (userContribution / totalContribution) * 100 : 0
+                    const userHeight = (height * userSharePercent) / 100
+
+                    const estimatedWormReward = calculateWormReward(userContribution, totalContribution)
+
                     return (
                       <div key={epoch.epoch} className="flex flex-col items-center">
                         <div className="w-full h-32 bg-gray-800 rounded relative overflow-hidden">
+                          {/* Total bar */}
                           <div
                             className={`absolute bottom-0 w-full transition-all duration-500 ${
                               epoch.isCurrent
@@ -303,6 +310,14 @@ export function BurnActivity() {
                             }`}
                             style={{ height: `${height}%` }}
                           />
+
+                          {userContribution > 0 && (
+                            <div
+                              className="absolute bottom-0 w-full transition-all duration-500 bg-black/40"
+                              style={{ height: `${userHeight}%` }}
+                            />
+                          )}
+
                           {epoch.isCurrent && <div className="absolute inset-0 bg-yellow-400/20 animate-pulse" />}
                         </div>
 
@@ -313,16 +328,58 @@ export function BurnActivity() {
                           <div
                             className={`text-xs font-mono ${epoch.isCurrent ? "text-yellow-300" : "text-green-300"}`}
                           >
-                            {epoch.total}
+                            {Number.parseFloat(epoch.total).toFixed(4)}
                           </div>
+                          {estimatedWormReward > 0 && (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <button className="text-xs font-mono text-yellow-200 hover:text-yellow-100 cursor-pointer underline decoration-dotted">
+                                  ~{estimatedWormReward.toFixed(1)} WORM
+                                </button>
+                              </DialogTrigger>
+                              <DialogContent className="bg-green-950/95 border-green-800 text-green-100">
+                                <DialogHeader>
+                                  <DialogTitle className="text-yellow-300">Epoch {epoch.epoch} Details</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="text-sm text-gray-400">Your Contribution</p>
+                                      <p className="text-lg font-mono text-cyan-300">{epoch.userAmount} ETH</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-gray-400">Total Burned</p>
+                                      <p className="text-lg font-mono text-green-300">{epoch.total} ETH</p>
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <p className="text-sm text-gray-400">Your Share</p>
+                                      <p className="text-lg font-mono text-cyan-300">{userSharePercent.toFixed(2)}%</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm text-gray-400">Expected WORM Reward</p>
+                                      <p className="text-lg font-mono text-yellow-300">
+                                        {estimatedWormReward.toFixed(3)} WORM
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <div className="pt-2 border-t border-green-800">
+                                    <p className="text-xs text-gray-400">
+                                      Rewards are calculated as your share percentage × 50 WORM (max per epoch)
+                                    </p>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                          )}
                         </div>
                       </div>
                     )
                   })}
                 </div>
 
-                {/* Legend */}
-                <div className="flex justify-center gap-6 pt-4 border-t border-green-800">
+                <div className="flex justify-center gap-4 pt-4 border-t border-green-800 flex-wrap">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-gradient-to-t from-green-600 to-green-400 rounded"></div>
                     <span className="text-xs text-gray-400">Past Epochs</span>
@@ -335,6 +392,10 @@ export function BurnActivity() {
                     <div className="w-3 h-3 bg-gradient-to-t from-gray-600 to-gray-500 rounded"></div>
                     <span className="text-xs text-gray-400">Future Epochs</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-black/40 rounded"></div>
+                    <span className="text-xs text-gray-400">Your Contribution</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -346,29 +407,50 @@ export function BurnActivity() {
           <div className="m-4 inline-flex items-center gap-2 bg-green-900/30 border border-green-700 rounded-lg px-4 py-2 text-sm">
             <Activity className="w-4 h-4 text-green-400" />
             <span className="text-gray-300">WORM Contract:</span>
-            <a
-              href={`https://sepolia.etherscan.io/address/${WORM_CONTRACT_ADDRESS}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-green-300 font-mono text-xs hover:text-green-200 hover:underline transition-colors cursor-pointer"
-            >
-              {WORM_CONTRACT_ADDRESS}
-            </a>
+            {networkConfig.blockExplorerUrls.length > 0 ? (
+              <a
+                href={getBlockExplorerUrl(networkConfig.contracts.worm)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-green-300 font-mono text-xs hover:text-green-200 hover:underline transition-colors cursor-pointer"
+                title={networkConfig.contracts.worm}
+              >
+                <span className="hidden sm:inline">{truncateAddress(networkConfig.contracts.worm, false)}</span>
+                <span className="sm:hidden">{truncateAddress(networkConfig.contracts.worm, true)}</span>
+              </a>
+            ) : (
+              <span className="text-green-300 font-mono text-xs" title={networkConfig.contracts.worm}>
+                <span className="hidden sm:inline">{truncateAddress(networkConfig.contracts.worm, false)}</span>
+                <span className="sm:hidden">{truncateAddress(networkConfig.contracts.worm, true)}</span>
+              </span>
+            )}
           </div>
-          <div className="m-4 inline-flex items-center gap-2 bg-green-900/30 border border-green-700 rounded-lg px-4 py-2 text-sm">
+          <div className="m-4 inline-flex items-center gap-2 bg-green-950/30 border border-green-700 rounded-lg px-4 py-2 text-sm">
             <Flame className="w-4 h-4 text-yellow-400" />
             <span className="text-gray-300">BETH Contract:</span>
-            <a
-              href={`https://sepolia.etherscan.io/address/${BETH_CONTRACT_ADDRESS}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-yellow-300 font-mono text-xs hover:text-yellow-200 hover:underline transition-colors cursor-pointer"
-            >
-              {BETH_CONTRACT_ADDRESS}
-            </a>
+            {networkConfig.blockExplorerUrls.length > 0 ? (
+              <a
+                href={getBlockExplorerUrl(networkConfig.contracts.beth)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-yellow-300 font-mono text-xs hover:text-yellow-200 hover:underline transition-colors cursor-pointer"
+                title={networkConfig.contracts.beth}
+              >
+                <span className="hidden sm:inline">{truncateAddress(networkConfig.contracts.beth, false)}</span>
+                <span className="sm:hidden">{truncateAddress(networkConfig.contracts.beth, true)}</span>
+              </a>
+            ) : (
+              <span className="text-yellow-300 font-mono text-xs" title={networkConfig.contracts.beth}>
+                <span className="hidden sm:inline">{truncateAddress(networkConfig.contracts.beth, false)}</span>
+                <span className="sm:hidden">{truncateAddress(networkConfig.contracts.beth, true)}</span>
+              </span>
+            )}
           </div>
           <div className="text-xs text-gray-400 mt-2">
-            Updates every 30 seconds • Click addresses to view on Etherscan
+            Updates every 30 seconds •{" "}
+            {networkConfig.blockExplorerUrls.length > 0
+              ? "Click addresses to view on block explorer"
+              : "Local network - no block explorer"}
           </div>
         </div>
       </div>

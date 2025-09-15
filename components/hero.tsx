@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Zap, Shield, Coins, DollarSign } from "lucide-react"
+import { ArrowRight, Zap, Shield, Coins, DollarSign, Pickaxe } from "lucide-react"
+import Link from "next/link"
 
 export function Hero() {
   return (
@@ -17,9 +18,7 @@ export function Hero() {
             <span className="font-mono">Powered by EIP-7503</span>
           </div>
 
-          <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-green-400 via-green-300 to-green-500 bg-clip-text text-transparent font-mono">
-            WORM
-          </h1>
+          <h1 className="text-6xl md:text-8xl font-bold mb-6 text-green-300 font-mono">WORM</h1>
 
           <p className="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
             A Scarce Cryptoasset Rooted in Private ETH Destruction
@@ -31,6 +30,15 @@ export function Hero() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <Link href="/mine">
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold border-0"
+            >
+              Mine
+              <Pickaxe className="ml-2 w-4 h-4" />
+            </Button>
+          </Link>
           <a href="https://juicebox.money/v4/eth:165?tabid=about">
             <Button
               size="lg"
@@ -44,7 +52,8 @@ export function Hero() {
           <a href="https://discord.gg/Z9TjZhm6qQ">
             <Button
               size="lg"
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold border-0"
+              variant="outline"
+              className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
             >
               Join Discord
               <ArrowRight className="ml-2 w-4 h-4" />
@@ -59,7 +68,6 @@ export function Hero() {
               View Circuits
             </Button>
           </a>
-
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
@@ -86,6 +94,6 @@ export function Hero() {
           </div>
         </div>
       </div>
-    </section >
+    </section>
   )
 }

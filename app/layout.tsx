@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "WORM - A Scarce Cryptoasset Rooted in Private ETH Destruction",
   description:
     "WORM transforms irreversible ETH burns into an economically meaningful, scarce asset using zk-SNARKs and Private Proof-of-Burn.",
-    generator: 'v0.dev'
+  generator: "v0.dev",
 }
 
 export default function RootLayout({

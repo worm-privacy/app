@@ -7,12 +7,15 @@ import { Roadmap } from "@/components/roadmap"
 import { Resources } from "@/components/resources"
 import { Team } from "@/components/team"
 import { BurnActivity } from "@/components/burn-activity"
+import { NetworkProvider } from "@/hooks/use-network"
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white">
       <Hero />
-      <BurnActivity />
+      <NetworkProvider>
+        <BurnActivity />
+      </NetworkProvider>
       <Overview />
       <Privacy />
       <Tokenomics />
