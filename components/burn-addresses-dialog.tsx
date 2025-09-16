@@ -52,6 +52,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   const [currentCount, setCurrentCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [mintError, setMintError] = useState<string | null>(null)
+  const [progressMessage, setProgressMessage] = useState<string | null>(null)
   const [scalarValue, setScalarValue] = useState<bigint | null>(null)
   const [loadingBalances, setLoadingBalances] = useState<Set<number>>(new Set())
   const [burnDialogOpen, setBurnDialogOpen] = useState(false)
@@ -68,7 +69,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   const STORAGE_KEY = `burn-key-results-${walletAddress}`
   const PROVING_ENDPOINTS = [
     "https://worm-miner.darkube.app/proof",
-    "http://localhost:8080/proof"
+    "http://localhost:8080/proof",
   ]
 
   const saveToLocalStorage = (newResults: BurnKeyResult[]) => {
@@ -301,6 +302,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
     setBurnDialogOpen(true)
     setBurnAmount("")
     setMintError(null)
+    setProgressMessage(null)
   }
 
   const handleBurn = async () => {
@@ -336,6 +338,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   const generateProof = async () => {
     setMintStage({ stage: "generate" })
     setMintError(null)
+    setProgressMessage(null)
 
     const result = results.find((r) => r.burnAddress === selectedBurnAddress)
     const balance = result?.balance || "0"
@@ -404,16 +407,20 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
               const result = await pollResponse.json()
               console.log("[v0] Poll response:", JSON.stringify(result, null, 2))
 
-              if (result.status === "failed") {
+              if (result.status === "error" || result.status === "failed") {
                 const errorMessage = result.message || result.error || "Unknown error"
                 console.error("[v0] Job failed:", errorMessage)
+                setProgressMessage(errorMessage)
                 setMintError(`Proof generation failed: ${errorMessage}`)
                 setMintStage({ stage: "confirm" })
                 return
               }
 
-              if (result.status === "in_progress") {
+              if (result.status === "in_progress" || result.status === "pending") {
                 console.log("[v0] Job in progress, continuing to poll...")
+                if (result.message) {
+                  setProgressMessage(result.message)
+                }
                 setTimeout(pollForResult, 5000)
                 return
               }
@@ -421,6 +428,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
               if (result.status === "completed") {
                 console.log("[v0] Job completed, proof ready!")
                 setMintStage({ stage: "submit", proof: result.result })
+                setProgressMessage(null)
                 return
               }
 
@@ -674,7 +682,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                       is going to be minted for address <strong>{walletAddress}</strong>
                     </>
                   )}
-                  {mintStage.stage === "generate" && "Generating cryptographic proof..."}
+                  {mintStage.stage === "generate" && (progressMessage || "Generating cryptographic proof...")}
                   {mintStage.stage === "submit" && "Proof generated successfully. Ready to submit."}
                   {mintStage.stage === "complete" && "BETH minted successfully!"}
                 </>
@@ -698,6 +706,34 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                 <Alert className="bg-red-900/30 border-red-700">
                   <AlertDescription className="text-red-300">{mintError}</AlertDescription>
                 </Alert>
+              )}
+
+              {mintStage.stage === "generate" && progressMessage && (
+                <div
+                  className={`p-4 border-2 rounded-lg shadow-lg ${
+                    mintError
+                      ? "bg-gradient-to-r from-red-900/40 to-red-800/40 border-red-500/50"
+                      : "bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-blue-500/50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      {mintError ? (
+                        <div className="h-5 w-5 rounded-full bg-red-500 flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">!</span>
+                        </div>
+                      ) : (
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
+                      )}
+                    </div>
+                    <div>
+                      <p className={`text-sm font-medium mb-1 ${mintError ? "text-red-200" : "text-blue-200"}`}>
+                        {mintError ? "Proof Generation Error" : "Proof Generation Status"}
+                      </p>
+                      <p className="text-white font-semibold">{progressMessage}</p>
+                    </div>
+                  </div>
+                </div>
               )}
 
               <div className="p-4 bg-green-950/40 border border-green-800 rounded-lg">
