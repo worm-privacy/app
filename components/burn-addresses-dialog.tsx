@@ -20,6 +20,8 @@ import { Loader2, Plus, Flame, Sprout, RefreshCw } from "lucide-react"
 import { keccak256, Signature, formatEther, parseEther } from "ethers"
 import { poseidon4 } from "poseidon-lite"
 import { useWallet } from "@/hooks/use-wallet"
+import { ethers } from "ethers"
+import { useNetwork } from "@/hooks/use-network"
 
 const FIELD_SIZE = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617")
 const POSEIDON_BURN_ADDRESS_PREFIX = BigInt("0xba44186ee7876b8007d2482cd46cec2d115b780980a6b46f0363f983d892f7e")
@@ -32,7 +34,7 @@ interface BurnKeyResult {
 }
 
 interface MintStage {
-  stage: "confirm" | "generate" | "submit" | "complete"
+  stage: "confirm" | "generate" | "submit" | "submitting" | "complete"
   proof?: any
 }
 
@@ -43,11 +45,13 @@ interface BurnAddressesDialogProps {
 
 export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesDialogProps) {
   const { address: walletAddress, signer } = useWallet()
+  const { networkConfig } = useNetwork()
   const [isOpen, setIsOpen] = useState(false)
   const [results, setResults] = useState<BurnKeyResult[]>([])
   const [isGenerating, setIsGenerating] = useState(false)
   const [currentCount, setCurrentCount] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [mintError, setMintError] = useState<string | null>(null)
   const [scalarValue, setScalarValue] = useState<bigint | null>(null)
   const [loadingBalances, setLoadingBalances] = useState<Set<number>>(new Set())
   const [burnDialogOpen, setBurnDialogOpen] = useState(false)
@@ -57,10 +61,14 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   const [isMintOperation, setIsMintOperation] = useState(false)
   const [selectedBurnKey, setSelectedBurnKey] = useState<string>("")
   const [mintStage, setMintStage] = useState<MintStage>({ stage: "confirm" })
-  const [selectedEndpoint, setSelectedEndpoint] = useState("http://12.23.34.45:8000/prove")
+  const [selectedEndpoint, setSelectedEndpoint] = useState("http://localhost:8080/proof")
+  const [customEndpoint, setCustomEndpoint] = useState("")
+  const [useCustomEndpoint, setUseCustomEndpoint] = useState(false)
 
   const STORAGE_KEY = `burn-key-results-${walletAddress}`
-  const PROVING_ENDPOINTS = ["http://12.23.34.45:8000/prove", "http://45.34.23.12:8000/prove"]
+  const PROVING_ENDPOINTS = [
+    "http://localhost:8080/proof"
+  ]
 
   const saveToLocalStorage = (newResults: BurnKeyResult[]) => {
     try {
@@ -291,6 +299,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
     setMintStage({ stage: "confirm" })
     setBurnDialogOpen(true)
     setBurnAmount("")
+    setMintError(null)
   }
 
   const handleBurn = async () => {
@@ -325,41 +334,214 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
   const generateProof = async () => {
     setMintStage({ stage: "generate" })
+    setMintError(null)
+
+    const result = results.find((r) => r.burnAddress === selectedBurnAddress)
+    const balance = result?.balance || "0"
+
+    let network = "sepolia" // default
+    try {
+      if (signer?.provider) {
+        const chainId = await signer.provider.getNetwork().then((n) => n.chainId)
+        console.log("[v0] Chain ID:", chainId)
+        // Anvil typically uses chain ID 31337 (0x7a69) or 1337 (0x539)
+        if (chainId === 31337n || chainId === 1337n) {
+          network = "anvil"
+        }
+      }
+    } catch (error) {
+      console.error("[v0] Error detecting network:", error)
+    }
 
     const proofRequest = {
-      burnKey: selectedBurnKey,
-      receiverAddress: walletAddress,
-      fee: 0,
+      amount: balance,
+      fee: "0", // Always 0 as requested
+      spend: balance,
+      network: network, // Dynamically detect network
+      wallet_address: walletAddress,
+      burn_key: selectedBurnKey,
     }
 
-    console.log(`[v0] Generating proof with endpoint: ${selectedEndpoint}`)
+    const endpointToUse = useCustomEndpoint ? customEndpoint : selectedEndpoint
+    console.log(`[v0] Generating proof with endpoint: ${endpointToUse}`)
     console.log("[v0] Generating proof with request:", JSON.stringify(proofRequest, null, 2))
 
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 2000))
+    try {
+      const response = await fetch(endpointToUse, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        mode: "cors",
+        body: JSON.stringify(proofRequest),
+      })
 
-    const fakeProof = {
-      proof: "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
-      publicSignals: ["0x123", "0x456", "0x789"],
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const jobResponse = await response.json()
+      console.log("[v0] Job response:", JSON.stringify(jobResponse, null, 2))
+
+      if (jobResponse.result?.job_id) {
+        const jobId = jobResponse.result.job_id
+        const pollEndpoint = `${endpointToUse}/${jobId}`
+        console.log(`[v0] Starting to poll: ${pollEndpoint}`)
+
+        const pollForResult = async () => {
+          try {
+            const pollResponse = await fetch(pollEndpoint, {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+              },
+              mode: "cors",
+            })
+
+            if (pollResponse.ok) {
+              const result = await pollResponse.json()
+              console.log("[v0] Poll response:", JSON.stringify(result, null, 2))
+
+              if (result.status === "failed") {
+                const errorMessage = result.message || result.error || "Unknown error"
+                console.error("[v0] Job failed:", errorMessage)
+                setMintError(`Proof generation failed: ${errorMessage}`)
+                setMintStage({ stage: "confirm" })
+                return
+              }
+
+              if (result.status === "in_progress") {
+                console.log("[v0] Job in progress, continuing to poll...")
+                setTimeout(pollForResult, 5000)
+                return
+              }
+
+              if (result.status === "completed") {
+                console.log("[v0] Job completed, proof ready!")
+                setMintStage({ stage: "submit", proof: result.result })
+                return
+              }
+
+              console.log("[v0] Unknown status, continuing to poll...")
+              setTimeout(pollForResult, 5000)
+            } else {
+              console.error("[v0] Poll request failed:", pollResponse.status)
+              setTimeout(pollForResult, 5000)
+            }
+          } catch (error) {
+            console.error("[v0] Polling error:", error)
+            setTimeout(pollForResult, 5000)
+          }
+        }
+
+        pollForResult()
+      } else {
+        console.error("[v0] No job_id received in response")
+        setMintError("Invalid response from proof endpoint - no job_id received")
+        setMintStage({ stage: "confirm" })
+      }
+    } catch (error) {
+      console.error("[v0] Error calling proof endpoint:", error)
+      setMintError(`Failed to request proof: ${error instanceof Error ? error.message : "Unknown error"}`)
+      setMintStage({ stage: "confirm" })
     }
-
-    console.log("[v0] Generated proof:", JSON.stringify(fakeProof, null, 2))
-    setMintStage({ stage: "submit", proof: fakeProof })
   }
 
   const submitProof = async () => {
+    setMintStage({ stage: "submitting" })
+    setMintError(null)
     console.log("[v0] Submitting proof:", JSON.stringify(mintStage.proof, null, 2))
 
-    // Simulate submission delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    if (!signer || !mintStage.proof) {
+      setMintError("Missing signer or proof data")
+      return
+    }
 
-    console.log("[v0] Proof submitted successfully!")
-    setMintStage({ stage: "complete" })
+    try {
+      const proofData = mintStage.proof
+      const { proof, block_number, nullifier_u256, remaining_coin, fee, spend, wallet_address } = proofData
 
-    setTimeout(() => {
-      setBurnDialogOpen(false)
-      setMintStage({ stage: "confirm" })
-    }, 2000)
+      const _pA = [proof.proof.pi_a[0], proof.proof.pi_a[1]]
+      const _pB = [
+        [proof.proof.pi_b[0][1], proof.proof.pi_b[0][0]],
+        [proof.proof.pi_b[1][1], proof.proof.pi_b[1][0]],
+      ]
+      const _pC = [proof.proof.pi_c[0], proof.proof.pi_c[1]]
+      const _blockNumber = BigInt(block_number)
+      const _nullifier = BigInt(nullifier_u256)
+      const _remainingCoin = BigInt(remaining_coin)
+      const _fee = BigInt(fee)
+      const _spend = BigInt(spend)
+      const _receiver = wallet_address
+
+      console.log("[v0] Calling mintCoin with parameters:", {
+        _pA,
+        _pB,
+        _pC,
+        _blockNumber: _blockNumber.toString(),
+        _nullifier: _nullifier.toString(),
+        _remainingCoin: _remainingCoin.toString(),
+        _fee: _fee.toString(),
+        _spend: _spend.toString(),
+        _receiver,
+      })
+
+      const contractAddress = networkConfig.contracts.beth
+      if (!contractAddress) {
+        throw new Error("BETH contract address not configured for current network")
+      }
+
+      const mintCoinABI = [
+        {
+          name: "mintCoin",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "_pA", type: "uint256[2]" },
+            { name: "_pB", type: "uint256[2][2]" },
+            { name: "_pC", type: "uint256[2]" },
+            { name: "_blockNumber", type: "uint256" },
+            { name: "_nullifier", type: "uint256" },
+            { name: "_remainingCoin", type: "uint256" },
+            { name: "_fee", type: "uint256" },
+            { name: "_spend", type: "uint256" },
+            { name: "_receiver", type: "address" },
+          ],
+          outputs: [],
+        },
+      ]
+
+      const contract = new ethers.Contract(contractAddress, mintCoinABI, signer)
+
+      const tx = await contract.mintCoin(
+        _pA,
+        _pB,
+        _pC,
+        _blockNumber,
+        _nullifier,
+        _remainingCoin,
+        _fee,
+        _spend,
+        _receiver,
+      )
+
+      console.log("[v0] mintCoin transaction sent:", tx.hash)
+
+      await tx.wait()
+      console.log("[v0] mintCoin transaction confirmed")
+
+      setMintStage({ stage: "complete" })
+
+      setTimeout(() => {
+        setBurnDialogOpen(false)
+        setMintStage({ stage: "confirm" })
+      }, 2000)
+    } catch (error) {
+      console.error("[v0] Error submitting proof:", error)
+      setMintError(`Failed to submit proof: ${error instanceof Error ? error.message : "Unknown error"}`)
+      setMintStage({ stage: "submit" })
+    }
   }
 
   const refreshBalances = () => {
@@ -489,13 +671,6 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                     <>
                       <strong>{results.find((r) => r.burnAddress === selectedBurnAddress)?.balance || "0"} BETH</strong>{" "}
                       is going to be minted for address <strong>{walletAddress}</strong>
-                      <br />
-                      <br />
-                      The process has two stages:
-                      <br />
-                      1. Generate proof
-                      <br />
-                      2. Submit proof
                     </>
                   )}
                   {mintStage.stage === "generate" && "Generating cryptographic proof..."}
@@ -510,7 +685,6 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
           {isMintOperation ? (
             <div className="space-y-4">
-              {/* Privacy warning box for mint operations */}
               <Alert className="bg-yellow-900/30 border-yellow-600">
                 <AlertDescription className="text-yellow-200">
                   <strong>Privacy Notice:</strong> If you want to use the privacy aspects of this protocol, it's
@@ -518,6 +692,12 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                   to get BETH for WORM mining, using the same wallet is okay.
                 </AlertDescription>
               </Alert>
+
+              {mintError && (
+                <Alert className="bg-red-900/30 border-red-700">
+                  <AlertDescription className="text-red-300">{mintError}</AlertDescription>
+                </Alert>
+              )}
 
               <div className="p-4 bg-green-950/40 border border-green-800 rounded-lg">
                 <p className="text-sm text-white">
@@ -532,31 +712,53 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
               </div>
 
               {mintStage.stage === "confirm" && (
-                <div className="space-y-2">
-                  <Label htmlFor="endpoint" className="text-white">
-                    Proving Endpoint
-                  </Label>
-                  <Select value={selectedEndpoint} onValueChange={setSelectedEndpoint}>
-                    <SelectTrigger className="bg-green-950/60 border-green-700 text-white">
-                      <SelectValue placeholder="Select proving endpoint" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-green-950 border-green-700">
-                      {PROVING_ENDPOINTS.map((endpoint) => (
-                        <SelectItem key={endpoint} value={endpoint}>
-                          {endpoint}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="endpoint" className="text-white">
+                      Proving Endpoint
+                    </Label>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <input
+                        type="checkbox"
+                        id="useCustomEndpoint"
+                        checked={useCustomEndpoint}
+                        onChange={(e) => setUseCustomEndpoint(e.target.checked)}
+                        className="rounded border-green-700 bg-green-950/60 text-green-600 focus:ring-green-600"
+                      />
+                      <Label htmlFor="useCustomEndpoint" className="text-white text-sm">
+                        Use custom endpoint
+                      </Label>
+                    </div>
+
+                    {useCustomEndpoint ? (
+                      <Input
+                        type="url"
+                        placeholder="https://your-custom-endpoint.com/prove"
+                        value={customEndpoint}
+                        onChange={(e) => setCustomEndpoint(e.target.value)}
+                        className="bg-green-950/60 border-green-700 text-white placeholder:text-gray-400"
+                      />
+                    ) : (
+                      <Select value={selectedEndpoint} onValueChange={setSelectedEndpoint}>
+                        <SelectTrigger className="bg-green-950/60 border-green-700 text-white">
+                          <SelectValue placeholder="Select proving endpoint" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-green-950 border-green-700">
+                          {PROVING_ENDPOINTS.map((endpoint) => (
+                            <SelectItem key={endpoint} value={endpoint}>
+                              {endpoint}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
                 </div>
               )}
 
               {mintStage.stage === "submit" && (
                 <div className="p-3 bg-green-950/40 border border-green-800 rounded text-xs">
-                  <strong className="text-white">Proof Generated:</strong>
-                  <pre className="mt-1 text-xs overflow-x-auto text-gray-300">
-                    {JSON.stringify(mintStage.proof, null, 2)}
-                  </pre>
+                  <strong className="text-white">Proof Generated!</strong>
                 </div>
               )}
 
@@ -589,6 +791,12 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                     className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold"
                   >
                     Submit proof
+                  </Button>
+                )}
+                {mintStage.stage === "submitting" && (
+                  <Button disabled className="flex-1 bg-gray-600">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting proof...
                   </Button>
                 )}
                 {mintStage.stage === "complete" && (
@@ -630,7 +838,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                 <Button
                   onClick={handleBurn}
                   disabled={
-                    !burnAmount || Number.parseFloat(burnAmount) <= 0 || Number.parseFloat(burnAmount) > 10 || isBurning
+                    !burnAmount || Number.parseFloat(burnAmount) <= 0 || Number.parseFloat(burnAmount) > 1 || isBurning
                   }
                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold"
                 >

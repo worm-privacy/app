@@ -4,8 +4,8 @@ export async function POST(request: NextRequest) {
   try {
     const { amount } = await request.json()
 
-    if (!amount || Number.parseFloat(amount) <= 0 || Number.parseFloat(amount) > 10) {
-      return NextResponse.json({ error: "Invalid amount. Must be between 0 and 10 ETH." }, { status: 400 })
+    if (!amount || Number.parseFloat(amount) <= 0 || Number.parseFloat(amount) > 1) {
+      return NextResponse.json({ error: "Invalid amount. Must be between 0 and 1 ETH." }, { status: 400 })
     }
 
     // Mock burn address generation

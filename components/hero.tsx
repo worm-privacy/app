@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Zap, Shield, Coins, DollarSign, Pickaxe } from "lucide-react"
 import Link from "next/link"
+import { FundingDialog } from "@/components/funding-dialog"
 
 export function Hero() {
   return (
@@ -39,7 +40,7 @@ export function Hero() {
               <Pickaxe className="ml-2 w-4 h-4" />
             </Button>
           </Link>
-          <a href="https://juicebox.money/v4/eth:165?tabid=about">
+          <FundingDialog>
             <Button
               size="lg"
               variant="outline"
@@ -48,7 +49,7 @@ export function Hero() {
               Fund us!
               <DollarSign className="w-4 h-4" />
             </Button>
-          </a>
+          </FundingDialog>
           <a href="https://discord.gg/Z9TjZhm6qQ">
             <Button
               size="lg"
@@ -70,6 +71,7 @@ export function Hero() {
           </a>
         </div>
 
+        {/* Existing code */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
           <div className="bg-green-950/30 border border-green-800 rounded-lg p-6">
             <Shield className="w-8 h-8 text-green-400 mb-4 mx-auto" />

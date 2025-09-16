@@ -76,75 +76,119 @@ export function BurnActivity() {
       console.log("[v0] Using WORM contract:", networkConfig.contracts.worm)
 
       const provider = new ethers.JsonRpcProvider(rpcUrl)
+
+      const [bethCode, wormCode] = await Promise.all([
+        provider.getCode(networkConfig.contracts.beth),
+        provider.getCode(networkConfig.contracts.worm),
+      ])
+
+      if (bethCode === "0x") {
+        console.warn("[v0] BETH contract not found at address:", networkConfig.contracts.beth)
+        setTotalSupply("0.0000")
+      }
+
+      if (wormCode === "0x") {
+        console.warn("[v0] WORM contract not found at address:", networkConfig.contracts.worm)
+        setTotalWormMinted("0.0000")
+        setCurrentEpoch(0)
+        setEpochData([])
+        return
+      }
+
       const wormContract = new ethers.Contract(networkConfig.contracts.worm, WORM_CONTRACT_ABI, provider)
       const bethContract = new ethers.Contract(networkConfig.contracts.beth, BETH_CONTRACT_ABI, provider)
 
-      // Get total supply from BETH contract
-      console.log("[v0] Calling BETH totalSupply()")
-      const bethTotalSupply = await bethContract.totalSupply()
-      setTotalSupply(Number.parseFloat(ethers.formatEther(bethTotalSupply)).toFixed(4))
-
-      // Get total WORM minted from WORM contract
-      console.log("[v0] Calling WORM totalSupply()")
-      const wormTotalSupply = await wormContract.totalSupply()
-      setTotalWormMinted(Number.parseFloat(ethers.formatEther(wormTotalSupply)).toFixed(4))
-
-      // Get current epoch from WORM contract
-      console.log("[v0] Calling currentEpoch()")
-      const currentEpochResult = await wormContract.currentEpoch()
-      const current = Number(currentEpochResult)
-      setCurrentEpoch(current)
-
-      const epochRange = isMobile ? 2 : 5 // 2 past/future on mobile, 5 on desktop
-      const epochs: EpochData[] = []
-
-      for (let i = -epochRange; i <= epochRange; i++) {
-        const epoch = current + i
-        if (epoch >= 0) {
-          try {
-            console.log(`[v0] Calling epochTotal(${epoch})`)
-            const totalResult = await wormContract.epochTotal(epoch)
-            const total = ethers.formatEther(totalResult)
-
-            let userAmount = "0.0000"
-            if (address) {
-              try {
-                console.log(`[v0] Calling epochUser(${epoch}, ${address})`)
-                const userResult = await wormContract.epochUser(epoch, address)
-                userAmount = ethers.formatEther(userResult)
-                console.log(`[v0] epochUser result for epoch ${epoch}: ${userAmount} BETH`)
-              } catch (err) {
-                console.log(`[v0] epochUser call failed for epoch ${epoch}:`, err)
-                userAmount = "0.0000"
-              }
-            }
-
-            epochs.push({
-              epoch,
-              total,
-              userAmount,
-              isCurrent: i === 0,
-              isPast: i < 0,
-              isFuture: i > 0,
-            })
-          } catch (err) {
-            // If epoch doesn't exist yet, show 0
-            epochs.push({
-              epoch,
-              total: "0.0000",
-              userAmount: "0.0000",
-              isCurrent: i === 0,
-              isPast: i < 0,
-              isFuture: i > 0,
-            })
-          }
+      if (bethCode !== "0x") {
+        try {
+          console.log("[v0] Calling BETH totalSupply()")
+          const bethTotalSupply = await bethContract.totalSupply()
+          setTotalSupply(Number.parseFloat(ethers.formatEther(bethTotalSupply)).toFixed(4))
+        } catch (err) {
+          console.error("[v0] Error calling BETH totalSupply:", err)
+          setTotalSupply("0.0000")
         }
       }
 
-      setEpochData(epochs)
+      if (wormCode !== "0x") {
+        try {
+          // Get total WORM minted from WORM contract
+          console.log("[v0] Calling WORM totalSupply()")
+          const wormTotalSupply = await wormContract.totalSupply()
+          setTotalWormMinted(Number.parseFloat(ethers.formatEther(wormTotalSupply)).toFixed(4))
+
+          // Get current epoch from WORM contract
+          console.log("[v0] Calling currentEpoch()")
+          const currentEpochResult = await wormContract.currentEpoch()
+          const current = Number(currentEpochResult)
+          setCurrentEpoch(current)
+
+          const epochRange = isMobile ? 2 : 5 // 2 past/future on mobile, 5 on desktop
+          const epochs: EpochData[] = []
+
+          for (let i = -epochRange; i <= epochRange; i++) {
+            const epoch = current + i
+            if (epoch >= 0) {
+              try {
+                console.log(`[v0] Calling epochTotal(${epoch})`)
+                const totalResult = await wormContract.epochTotal(epoch)
+                const total = ethers.formatEther(totalResult)
+
+                let userAmount = "0.0000"
+                if (address) {
+                  try {
+                    console.log(`[v0] Calling epochUser(${epoch}, ${address})`)
+                    const userResult = await wormContract.epochUser(epoch, address)
+                    userAmount = ethers.formatEther(userResult)
+                    console.log(`[v0] epochUser result for epoch ${epoch}: ${userAmount} BETH`)
+                  } catch (err) {
+                    console.log(`[v0] epochUser call failed for epoch ${epoch}:`, err)
+                    userAmount = "0.0000"
+                  }
+                }
+
+                epochs.push({
+                  epoch,
+                  total,
+                  userAmount,
+                  isCurrent: i === 0,
+                  isPast: i < 0,
+                  isFuture: i > 0,
+                })
+              } catch (err) {
+                // If epoch doesn't exist yet, show 0
+                epochs.push({
+                  epoch,
+                  total: "0.0000",
+                  userAmount: "0.0000",
+                  isCurrent: i === 0,
+                  isPast: i < 0,
+                  isFuture: i > 0,
+                })
+              }
+            }
+          }
+
+          setEpochData(epochs)
+        } catch (err) {
+          console.error("[v0] Error calling WORM contract functions:", err)
+          setTotalWormMinted("0.0000")
+          setCurrentEpoch(0)
+          setEpochData([])
+        }
+      }
     } catch (err) {
       console.error("[v0] Error fetching burn activity:", err)
-      setError(err instanceof Error ? err.message : "Failed to fetch data")
+      if (err instanceof Error) {
+        if (err.message.includes("could not decode result data")) {
+          setError("Contracts not deployed on this network or incompatible contract version")
+        } else if (err.message.includes("network")) {
+          setError("Network connection error - please check your RPC endpoint")
+        } else {
+          setError(err.message)
+        }
+      } else {
+        setError("Failed to fetch contract data")
+      }
     } finally {
       setLoading(false)
     }

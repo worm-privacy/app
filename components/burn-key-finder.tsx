@@ -52,6 +52,8 @@ export default function BurnKeyFinder() {
   const [selectedBurnKey, setSelectedBurnKey] = useState<string>("")
   const [mintStage, setMintStage] = useState<MintStage>({ stage: "confirm" })
   const [selectedEndpoint, setSelectedEndpoint] = useState("http://12.23.34.45:8000/prove")
+  const [customEndpoint, setCustomEndpoint] = useState("")
+  const [useCustomEndpoint, setUseCustomEndpoint] = useState(false)
 
   const STORAGE_KEY = "burn-key-results"
 
@@ -373,10 +375,10 @@ export default function BurnKeyFinder() {
       fee: 0,
     }
 
-    console.log(`[v0] Generating proof with endpoint: ${selectedEndpoint}`)
+    const endpointToUse = useCustomEndpoint ? customEndpoint : selectedEndpoint
+    console.log(`[v0] Generating proof with endpoint: ${endpointToUse}`)
     console.log("[v0] Generating proof with request:", JSON.stringify(proofRequest, null, 2))
 
-    // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
     const fakeProof = {
@@ -392,7 +394,6 @@ export default function BurnKeyFinder() {
   const submitProof = async () => {
     console.log("[v0] Submitting proof:", JSON.stringify(mintStage.proof, null, 2))
 
-    // Simulate submission delay
     await new Promise((resolve) => setTimeout(resolve, 1500))
 
     console.log("[v0] Proof submitted successfully!")
@@ -598,22 +599,46 @@ export default function BurnKeyFinder() {
                 </div>
 
                 {mintStage.stage === "confirm" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="endpoint" className="text-foreground">
-                      Proving Endpoint
-                    </Label>
-                    <Select value={selectedEndpoint} onValueChange={setSelectedEndpoint}>
-                      <SelectTrigger className="bg-input border-border text-foreground">
-                        <SelectValue placeholder="Select proving endpoint" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border-border">
-                        {PROVING_ENDPOINTS.map((endpoint) => (
-                          <SelectItem key={endpoint} value={endpoint}>
-                            {endpoint}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="endpoint" className="text-foreground">
+                        Proving Endpoint
+                      </Label>
+                      <div className="flex items-center space-x-2 mb-2">
+                        <input
+                          type="checkbox"
+                          id="useCustomEndpoint"
+                          checked={useCustomEndpoint}
+                          onChange={(e) => setUseCustomEndpoint(e.target.checked)}
+                          className="rounded border-border bg-input text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="useCustomEndpoint" className="text-foreground text-sm">
+                          Use custom endpoint
+                        </Label>
+                      </div>
+                      {useCustomEndpoint ? (
+                        <Input
+                          type="url"
+                          placeholder="https://your-custom-endpoint.com/prove"
+                          value={customEndpoint}
+                          onChange={(e) => setCustomEndpoint(e.target.value)}
+                          className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+                        />
+                      ) : (
+                        <Select value={selectedEndpoint} onValueChange={setSelectedEndpoint}>
+                          <SelectTrigger className="bg-input border-border text-foreground">
+                            <SelectValue placeholder="Select proving endpoint" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border-border">
+                            {PROVING_ENDPOINTS.map((endpoint) => (
+                              <SelectItem key={endpoint} value={endpoint}>
+                                {endpoint}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -639,7 +664,7 @@ export default function BurnKeyFinder() {
                     value={burnAmount}
                     onChange={(e) => setBurnAmount(e.target.value)}
                     min="0"
-                    max="10"
+                    max="1"
                     step="0.001"
                     className="bg-input border-border text-foreground placeholder:text-muted-foreground"
                   />
@@ -689,7 +714,7 @@ export default function BurnKeyFinder() {
                 <Button
                   onClick={handleBurn}
                   disabled={
-                    !burnAmount || Number.parseFloat(burnAmount) <= 0 || Number.parseFloat(burnAmount) > 10 || isBurning
+                    !burnAmount || Number.parseFloat(burnAmount) <= 0 || Number.parseFloat(burnAmount) > 1 || isBurning
                   }
                   className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
                 >

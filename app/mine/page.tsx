@@ -101,7 +101,7 @@ function MinePageContent() {
                       size="sm"
                       variant="outline"
                       className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent w-full"
-                      disabled
+                      
                     >
                       Burn ETH
                       <Flame className="ml-2 w-4 h-4" />
