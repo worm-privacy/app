@@ -61,12 +61,13 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   const [isMintOperation, setIsMintOperation] = useState(false)
   const [selectedBurnKey, setSelectedBurnKey] = useState<string>("")
   const [mintStage, setMintStage] = useState<MintStage>({ stage: "confirm" })
-  const [selectedEndpoint, setSelectedEndpoint] = useState("http://localhost:8080/proof")
+  const [selectedEndpoint, setSelectedEndpoint] = useState("https://worm-miner.darkube.app/proof")
   const [customEndpoint, setCustomEndpoint] = useState("")
   const [useCustomEndpoint, setUseCustomEndpoint] = useState(false)
 
   const STORAGE_KEY = `burn-key-results-${walletAddress}`
   const PROVING_ENDPOINTS = [
+    "https://worm-miner.darkube.app/proof",
     "http://localhost:8080/proof"
   ]
 
