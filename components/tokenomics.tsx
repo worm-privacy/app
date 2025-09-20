@@ -74,15 +74,15 @@ export function Tokenomics() {
 
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="bg-green-900/30 rounded p-2">
+                    <p className="text-lg font-bold text-green-300 font-mono">5</p>
+                    <p className="text-xs text-gray-400">WORM</p>
+                  </div>
+                  <div className="bg-green-900/30 rounded p-2">
                     <p className="text-lg font-bold text-green-300 font-mono">10</p>
                     <p className="text-xs text-gray-400">WORM</p>
                   </div>
                   <div className="bg-green-900/30 rounded p-2">
-                    <p className="text-lg font-bold text-green-300 font-mono">20</p>
-                    <p className="text-xs text-gray-400">WORM</p>
-                  </div>
-                  <div className="bg-green-900/30 rounded p-2">
-                    <p className="text-lg font-bold text-green-300 font-mono">70</p>
+                    <p className="text-lg font-bold text-green-300 font-mono">35</p>
                     <p className="text-xs text-gray-400">WORM</p>
                   </div>
                 </div>
