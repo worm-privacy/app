@@ -18,19 +18,22 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Plus, Flame, Sprout, RefreshCw } from "lucide-react"
 import { keccak256, Signature, formatEther, parseEther } from "ethers"
-import { poseidon4 } from "poseidon-lite"
+import { poseidon4, poseidon2 } from "poseidon-lite"
 import { useWallet } from "@/hooks/use-wallet"
 import { ethers } from "ethers"
 import { useNetwork } from "@/hooks/use-network"
 
 const FIELD_SIZE = BigInt("21888242871839275222246405745257275088548364400416034343698204186575808495617")
 const POSEIDON_BURN_ADDRESS_PREFIX = BigInt("0xba44186ee7876b8007d2482cd46cec2d115b780980a6b46f0363f983d892f7e")
+const NULLIFIER_PREFIX = BigInt("0xba44186ee7876b8007d2482cd46cec2d115b780980a6b46f0363f983d892f7f")
 
 interface BurnKeyResult {
   index: number
   burnKey: string
   burnAddress: string
   balance?: string
+  isConsumed?: boolean
+  checkingConsumption?: boolean
 }
 
 interface MintStage {
@@ -65,12 +68,10 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   const [selectedEndpoint, setSelectedEndpoint] = useState("https://worm-miner-3.darkube.app/proof")
   const [customEndpoint, setCustomEndpoint] = useState("")
   const [useCustomEndpoint, setUseCustomEndpoint] = useState(false)
+  const [showConsumedAddresses, setShowConsumedAddresses] = useState(false)
 
   const STORAGE_KEY = `burn-key-results-${walletAddress}`
-  const PROVING_ENDPOINTS = [
-    "https://worm-miner-3.darkube.app/proof",
-    "http://localhost:8080/proof",
-  ]
+  const PROVING_ENDPOINTS = ["https://worm-miner-3.darkube.app/proof", "http://localhost:8080/proof"]
 
   const saveToLocalStorage = (newResults: BurnKeyResult[]) => {
     try {
@@ -106,12 +107,15 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   const fetchBalance = async (address: string, index: number) => {
     if (!signer) return
 
+    console.log(`[v0] Fetching balance for address ${address} at index ${index}`)
     setLoadingBalances((prev) => new Set(prev).add(index))
 
     try {
       const provider = signer.provider
       const balance = await provider.getBalance(address)
       const balanceInEth = formatEther(balance)
+
+      console.log(`[v0] Balance fetched: ${balanceInEth} ETH for address ${address}`)
 
       setResults((prev) =>
         prev.map((result) => (result.index === index ? { ...result, balance: balanceInEth } : result)),
@@ -121,6 +125,17 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
         result.index === index ? { ...result, balance: balanceInEth } : result,
       )
       saveToLocalStorage(updatedResults)
+
+      if (Number.parseFloat(balanceInEth) > 0) {
+        console.log(`[v0] Balance > 0, checking nullifier consumption for index ${index}`)
+        const result = results.find((r) => r.index === index)
+        if (result) {
+          console.log(`[v0] Found result for index ${index}, burn key: ${result.burnKey}`)
+          await checkNullifierConsumption(result.burnKey, index)
+        } else {
+          console.log(`[v0] No result found for index ${index}`)
+        }
+      }
     } catch (err) {
       console.error("Failed to fetch balance:", err)
     } finally {
@@ -208,6 +223,79 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
     } catch (err) {
       console.error("Error deriving burn address:", err)
       throw new Error("Failed to derive burn address")
+    }
+  }
+
+  function calculateNullifier(burnKey: string): bigint {
+    const burnKeyBigInt = BigInt(burnKey)
+    return BigInt(poseidon2(["0x" + NULLIFIER_PREFIX.toString(16), "0x" + burnKeyBigInt.toString(16)]))
+  }
+
+  function calculateStorageSlot(nullifier: bigint): string {
+    const nullifierBytes = new Uint8Array(32)
+    const slotBytes = new Uint8Array(32)
+
+    const nullifierHex = nullifier.toString(16).padStart(64, "0")
+    for (let i = 0; i < 32; i++) {
+      nullifierBytes[i] = Number.parseInt(nullifierHex.substr(i * 2, 2), 16)
+    }
+
+    slotBytes[31] = 7
+
+    const combined = new Uint8Array(64)
+    combined.set(nullifierBytes, 0)
+    combined.set(slotBytes, 32)
+    console.log(combined)
+
+    return keccak256(combined)
+  }
+
+  const checkNullifierConsumption = async (burnKey: string, index: number) => {
+    if (!signer?.provider) {
+      console.log(`[v0] No signer or provider available for nullifier check`)
+      return
+    }
+
+    console.log(`[v0] Checking nullifier consumption for burn key ${burnKey} at index ${index}`)
+
+    setResults((prev) =>
+      prev.map((result) => (result.index === index ? { ...result, checkingConsumption: true } : result)),
+    )
+
+    try {
+      const contractAddress = networkConfig.contracts.beth
+      if (!contractAddress) {
+        console.warn(`[v0] BETH contract address not configured`)
+        return
+      }
+
+      console.log(`[v0] Using BETH contract address: ${contractAddress}`)
+
+      const nullifier = calculateNullifier(burnKey)
+      const storageSlot = calculateStorageSlot(nullifier)
+
+      console.log(`[v0] Nullifier: ${nullifier.toString()}`)
+      console.log(`[v0] Storage slot: ${storageSlot}`)
+
+      const storageValue = await signer.provider.getStorage(contractAddress, storageSlot)
+      console.log(storageSlot)
+      const isConsumed = storageValue === "0x0000000000000000000000000000000000000000000000000000000000000001"
+
+      console.log(`[v0] Storage value: ${storageValue}`)
+      console.log(`[v0] Is consumed: ${isConsumed}`)
+
+      setResults((prev) => {
+        const updatedResults = prev.map((result) =>
+          result.index === index ? { ...result, isConsumed, checkingConsumption: false } : result,
+        )
+        saveToLocalStorage(updatedResults)
+        return updatedResults
+      })
+    } catch (error) {
+      console.error(`[v0] Error checking nullifier consumption:`, error)
+      setResults((prev) =>
+        prev.map((result) => (result.index === index ? { ...result, checkingConsumption: false } : result)),
+      )
     }
   }
 
@@ -319,7 +407,6 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
       await tx.wait()
 
-      // Refresh balance after successful burn
       const result = results.find((r) => r.burnAddress === selectedBurnAddress)
       if (result) {
         setTimeout(() => fetchBalance(selectedBurnAddress, result.index), 1000)
@@ -343,12 +430,11 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
     const result = results.find((r) => r.burnAddress === selectedBurnAddress)
     const balance = result?.balance || "0"
 
-    let network = "sepolia" // default
+    let network = "sepolia"
     try {
       if (signer?.provider) {
         const chainId = await signer.provider.getNetwork().then((n) => n.chainId)
         console.log("[v0] Chain ID:", chainId)
-        // Anvil typically uses chain ID 31337 (0x7a69) or 1337 (0x539)
         if (chainId === 31337n || chainId === 1337n) {
           network = "anvil"
         }
@@ -359,9 +445,9 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
     const proofRequest = {
       amount: balance,
-      fee: "0", // Always 0 as requested
+      fee: "0",
       spend: balance,
-      network: network, // Dynamically detect network
+      network: network,
       wallet_address: walletAddress,
       burn_key: selectedBurnKey,
     }
@@ -542,6 +628,11 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
       setMintStage({ stage: "complete" })
 
+      console.log("[v0] Proof submitted successfully, refreshing balances...")
+      setTimeout(() => {
+        refreshBalances()
+      }, 1000)
+
       setTimeout(() => {
         setBurnDialogOpen(false)
         setMintStage({ stage: "confirm" })
@@ -558,6 +649,10 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
       fetchBalance(result.burnAddress, result.index)
     })
   }
+
+  const filteredResults = showConsumedAddresses
+    ? results
+    : results.filter((result) => !result.isConsumed || !result.balance || Number.parseFloat(result.balance) === 0)
 
   return (
     <>
@@ -577,16 +672,31 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
           <div className="space-y-4">
             <div className="flex justify-between items-center">
-              <Button
-                onClick={refreshBalances}
-                size="sm"
-                variant="outline"
-                className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
-                disabled={loadingBalances.size > 0}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${loadingBalances.size > 0 ? "animate-spin" : ""}`} />
-                Refresh Balances
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={refreshBalances}
+                  size="sm"
+                  variant="outline"
+                  className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
+                  disabled={loadingBalances.size > 0}
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loadingBalances.size > 0 ? "animate-spin" : ""}`} />
+                  Refresh Balances
+                </Button>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="showConsumed"
+                    checked={showConsumedAddresses}
+                    onChange={(e) => setShowConsumedAddresses(e.target.checked)}
+                    className="rounded border-green-700 bg-green-950/60 text-green-600 focus:ring-green-600"
+                  />
+                  <Label htmlFor="showConsumed" className="text-white text-sm">
+                    Show consumed burn-addresses
+                  </Label>
+                </div>
+              </div>
 
               <Button
                 onClick={generateNextBurnKey}
@@ -608,9 +718,9 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
               </Button>
             </div>
 
-            {results.length > 0 ? (
+            {filteredResults.length > 0 ? (
               <div className="space-y-2 max-h-60 overflow-y-auto">
-                {results.map((result) => (
+                {filteredResults.map((result) => (
                   <div
                     key={result.index}
                     className="flex items-center gap-2 p-3 bg-green-950/40 border border-green-800 rounded-lg"
@@ -635,12 +745,15 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                       size="sm"
                       variant="outline"
                       onClick={() => openBurnDialog(result.burnAddress)}
-                      className="ml-2 border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
+                      disabled={result.balance && Number.parseFloat(result.balance) > 0 && result.isConsumed}
+                      className={`ml-2 border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent ${
+                        result.isConsumed ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                     >
                       {result.balance && Number.parseFloat(result.balance) > 0 ? (
                         <>
                           <Sprout className="h-3 w-3 mr-1 text-green-400" />
-                          Mint
+                          {result.isConsumed ? "Consumed" : "Mint"}
                         </>
                       ) : (
                         <>
@@ -655,8 +768,17 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
             ) : (
               <div className="text-center py-8 text-gray-400">
                 <Flame className="w-12 h-12 mx-auto mb-4 text-green-600" />
-                <p>No burn addresses generated yet.</p>
-                <p className="text-sm">Click "Generate Address" to create your first burn address.</p>
+                {results.length === 0 ? (
+                  <>
+                    <p>No burn addresses generated yet.</p>
+                    <p className="text-sm">Click "Generate Address" to create your first burn address.</p>
+                  </>
+                ) : (
+                  <>
+                    <p>No available burn addresses to show.</p>
+                    <p className="text-sm">Check "Show consumed burn-addresses" to see all addresses.</p>
+                  </>
+                )}
               </div>
             )}
 
