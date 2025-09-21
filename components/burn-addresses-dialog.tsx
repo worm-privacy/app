@@ -320,7 +320,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
       let burnKey = (baseScalar + BigInt(index) * BigInt(10) ** BigInt(18)) % FIELD_SIZE
 
       let iterations = 0
-      const maxIterations = 1000000
+      const maxIterations = 100000000
 
       while (iterations < maxIterations) {
         if (burnKey >= FIELD_SIZE) {

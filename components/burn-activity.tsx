@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Flame, TrendingUp, Clock, Activity, Coins } from "lucide-react"
+import { Flame, TrendingUp, Clock, Activity, Coins, Timer } from "lucide-react"
 import { useNetwork } from "@/hooks/use-network"
 import { ethers } from "ethers"
 
@@ -25,6 +25,9 @@ export function BurnActivity() {
   const [error, setError] = useState<string | null>(null)
   const [userAddress, setUserAddress] = useState<string | null>(null)
   const [isMobile, setIsMobile] = useState(false)
+  const [epochTimeLeft, setEpochTimeLeft] = useState<number>(0)
+  const [startingTimestamp, setStartingTimestamp] = useState<number>(0)
+  const [lastBlockTimestamp, setLastBlockTimestamp] = useState<number>(0)
 
   const { networkConfig, selectedNetwork } = useNetwork()
 
@@ -33,9 +36,45 @@ export function BurnActivity() {
     "function epochTotal(uint256) view returns (uint256)",
     "function totalSupply() view returns (uint256)",
     "function epochUser(uint256 epoch, address user) public view returns (uint256)",
+    "function startingTimestamp() view returns (uint256)",
   ]
 
   const BETH_CONTRACT_ABI = ["function totalSupply() view returns (uint256)"]
+
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`
+  }
+
+  const calculateEpochTimeLeft = (startingTimestamp: number, blockTimestamp: number): number => {
+    if (startingTimestamp === 0 || blockTimestamp === 0) return 0
+
+    const epochDuration = 1800 // 30 minutes in seconds
+    const now = Math.floor(Date.now() / 1000) // Current system time in seconds
+    const blockAge = now - blockTimestamp // How many seconds ago was the block
+    const adjustedBlockTime = blockTimestamp + blockAge // Estimate current blockchain time
+
+    const timeSinceStart = adjustedBlockTime - startingTimestamp
+    const timeInCurrentEpoch = timeSinceStart % epochDuration
+    const timeLeft = epochDuration - timeInCurrentEpoch
+
+    return Math.max(0, timeLeft)
+  }
+
+  useEffect(() => {
+    if (startingTimestamp > 0 && lastBlockTimestamp > 0) {
+      const updateTimer = () => {
+        const timeLeft = calculateEpochTimeLeft(startingTimestamp, lastBlockTimestamp)
+        setEpochTimeLeft(timeLeft)
+      }
+
+      updateTimer() // Initial calculation
+
+      const interval = setInterval(updateTimer, 1000) // Update every second
+      return () => clearInterval(interval)
+    }
+  }, [startingTimestamp, lastBlockTimestamp])
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -77,6 +116,12 @@ export function BurnActivity() {
 
       const provider = new ethers.JsonRpcProvider(rpcUrl)
 
+      const latestBlock = await provider.getBlock("latest")
+      if (latestBlock) {
+        setLastBlockTimestamp(latestBlock.timestamp)
+        console.log("[v0] Latest block timestamp:", latestBlock.timestamp)
+      }
+
       const [bethCode, wormCode] = await Promise.all([
         provider.getCode(networkConfig.contracts.beth),
         provider.getCode(networkConfig.contracts.worm),
@@ -111,12 +156,15 @@ export function BurnActivity() {
 
       if (wormCode !== "0x") {
         try {
-          // Get total WORM minted from WORM contract
           console.log("[v0] Calling WORM totalSupply()")
           const wormTotalSupply = await wormContract.totalSupply()
           setTotalWormMinted(Number.parseFloat(ethers.formatEther(wormTotalSupply)).toFixed(4))
 
-          // Get current epoch from WORM contract
+          console.log("[v0] Calling startingTimestamp()")
+          const startingTimestampResult = await wormContract.startingTimestamp()
+          const timestamp = Number(startingTimestampResult)
+          setStartingTimestamp(timestamp)
+
           console.log("[v0] Calling currentEpoch()")
           const currentEpochResult = await wormContract.currentEpoch()
           const current = Number(currentEpochResult)
@@ -155,7 +203,6 @@ export function BurnActivity() {
                   isFuture: i > 0,
                 })
               } catch (err) {
-                // If epoch doesn't exist yet, show 0
                 epochs.push({
                   epoch,
                   total: "0.0000",
@@ -197,7 +244,6 @@ export function BurnActivity() {
   useEffect(() => {
     fetchContractData()
 
-    // Refresh data every 30 seconds
     const interval = setInterval(fetchContractData, 30000)
     return () => clearInterval(interval)
   }, [networkConfig, isMobile])
@@ -217,7 +263,6 @@ export function BurnActivity() {
   const calculateWormReward = (userContribution: number, totalContribution: number): number => {
     if (totalContribution === 0 || userContribution === 0) return 0
 
-    // User's share percentage * max WORM per epoch
     const userSharePercent = userContribution / totalContribution
     const estimatedReward = userSharePercent * WORM_PER_EPOCH
 
@@ -229,17 +274,14 @@ export function BurnActivity() {
 
   const truncateAddress = (address: string, isMobile = false) => {
     if (isMobile) {
-      // On mobile, show first 6 and last 4 characters
       return `${address.slice(0, 6)}...${address.slice(-4)}`
     }
-    // On desktop, show more characters
     return `${address.slice(0, 10)}...${address.slice(-6)}`
   }
 
   return (
     <section className="py-20 bg-green-950/20">
       <div className="container mx-auto px-6">
-        {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <Card className="bg-green-950/40 border-green-800">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -248,6 +290,10 @@ export function BurnActivity() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-300 font-mono">{loading ? "..." : currentEpoch}</div>
+              <div className="flex items-center gap-1 mt-2">
+                <Timer className="h-3 w-3 text-yellow-400" />
+                <span className="text-sm font-mono text-yellow-400">{formatTime(epochTimeLeft)}</span>
+              </div>
               <p className="text-xs text-gray-400 mt-1">Active burn period</p>
             </CardContent>
           </Card>
@@ -288,7 +334,6 @@ export function BurnActivity() {
           </Card>
         </div>
 
-        {/* Epoch Timeline */}
         <Card className="bg-green-950/40 border-green-800">
           <CardHeader>
             <CardTitle className="text-xl text-green-300 flex items-center gap-2">
@@ -320,14 +365,12 @@ export function BurnActivity() {
               </div>
             ) : (
               <div className="space-y-4">
-                {/* Timeline Header */}
                 <div className={`grid ${gridCols} gap-2 text-xs text-gray-400 font-mono`}>
                   <div className={`col-span-${epochRange} text-center`}>Past Epochs</div>
                   <div className="text-center">Current</div>
                   <div className={`col-span-${epochRange} text-center`}>Future Epochs</div>
                 </div>
 
-                {/* Timeline Bars */}
                 <div className={`grid ${gridCols} gap-2`}>
                   {epochData.map((epoch, index) => {
                     const maxTotal = Math.max(...epochData.map((e) => Number.parseFloat(e.total)))
@@ -343,7 +386,6 @@ export function BurnActivity() {
                     return (
                       <div key={epoch.epoch} className="flex flex-col items-center">
                         <div className="w-full h-32 bg-gray-800 rounded relative overflow-hidden">
-                          {/* Total bar */}
                           <div
                             className={`absolute bottom-0 w-full transition-all duration-500 ${
                               epoch.isCurrent
@@ -446,7 +488,6 @@ export function BurnActivity() {
           </CardContent>
         </Card>
 
-        {/* Contract Info */}
         <div className="mt-8 text-center space-y-2">
           <div className="m-4 inline-flex items-center gap-2 bg-green-900/30 border border-green-700 rounded-lg px-4 py-2 text-sm">
             <Activity className="w-4 h-4 text-green-400" />
