@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Github, ExternalLink } from "lucide-react"
+import { Github, ExternalLink, Twitter } from "lucide-react"
 
 export function Team() {
   const teamMembers = [
@@ -35,6 +35,14 @@ export function Team() {
       description: "I'm a software engineer passionate about blockchain, especially zero-knowledge proofs, and I enjoy building cool, privacy-focused solutions",
       github: "https://github.com/sarakvn1",
       avatar: "/sarah.jpg",
+    },
+    {
+      name: "Sage Tega",
+      role: "Growth Lead",
+      description: "Leading growth and partnerships of the WORM",
+      github: "https://github.com/sarakvn1",
+      x: "https://x.com/Sage_Tega",
+      avatar: "/sage.jpg",
     }
   ]
 
@@ -71,16 +79,27 @@ export function Team() {
                   <p className="text-gray-400 text-sm leading-relaxed">{member.description}</p>
 
                   <div className="flex justify-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
-                      onClick={() => window.open(member.github, "_blank")}
-                    >
-                      <Github className="w-4 h-4 mr-2" />
-                      GitHub
-                      <ExternalLink className="w-3 h-3 ml-1" />
-                    </Button>
+                    {member.x ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
+                        onClick={() => window.open(member.x, "_blank")}
+                      >
+                        <Github className="w-4 h-4 mr-2" />
+                        X
+                        <ExternalLink className="w-3 h-3 ml-1" />
+                      </Button>) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent"
+                        onClick={() => window.open(member.github, "_blank")}
+                      >
+                        <Twitter className="w-4 h-4 mr-2" />
+                        GitHub
+                        <ExternalLink className="w-3 h-3 ml-1" />
+                      </Button>)}
                   </div>
                 </CardContent>
               </Card>
