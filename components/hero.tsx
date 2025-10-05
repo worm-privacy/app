@@ -50,7 +50,7 @@ export function Hero() {
               <DollarSign className="w-4 h-4" />
             </Button>
           </FundingDialog>
-          <a href="https://discord.gg/Z9TjZhm6qQ">
+          <a href="https://discord.gg/EIP7503">
             <Button
               size="lg"
               variant="outline"
