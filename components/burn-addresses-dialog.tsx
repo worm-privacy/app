@@ -65,13 +65,13 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   const [isMintOperation, setIsMintOperation] = useState(false)
   const [selectedBurnKey, setSelectedBurnKey] = useState<string>("")
   const [mintStage, setMintStage] = useState<MintStage>({ stage: "confirm" })
-  const [selectedEndpoint, setSelectedEndpoint] = useState("https://worm-miner-3.darkube.app/proof")
+  const [selectedEndpoint, setSelectedEndpoint] = useState("https://worm-testnet.metatarz.xyz/proof")
   const [customEndpoint, setCustomEndpoint] = useState("")
   const [useCustomEndpoint, setUseCustomEndpoint] = useState(false)
   const [showConsumedAddresses, setShowConsumedAddresses] = useState(false)
 
   const STORAGE_KEY = `burn-key-results-${walletAddress}`
-  const PROVING_ENDPOINTS = ["https://worm-miner-3.darkube.app/proof", "http://localhost:8080/proof"]
+  const PROVING_ENDPOINTS = ["https://worm-testnet.metatarz.xyz/proof", "https://worm-miner-3.darkube.app/proof", "http://localhost:8080/proof"]
 
   const saveToLocalStorage = (newResults: BurnKeyResult[]) => {
     try {
@@ -746,9 +746,8 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                       variant="outline"
                       onClick={() => openBurnDialog(result.burnAddress)}
                       disabled={result.balance && Number.parseFloat(result.balance) > 0 && result.isConsumed}
-                      className={`ml-2 border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent ${
-                        result.isConsumed ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
+                      className={`ml-2 border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent ${result.isConsumed ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                     >
                       {result.balance && Number.parseFloat(result.balance) > 0 ? (
                         <>
@@ -832,11 +831,10 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
               {mintStage.stage === "generate" && progressMessage && (
                 <div
-                  className={`p-4 border-2 rounded-lg shadow-lg ${
-                    mintError
+                  className={`p-4 border-2 rounded-lg shadow-lg ${mintError
                       ? "bg-gradient-to-r from-red-900/40 to-red-800/40 border-red-500/50"
                       : "bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-blue-500/50"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
