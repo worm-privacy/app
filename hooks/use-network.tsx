@@ -32,8 +32,8 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       decimals: 18,
     },
     contracts: {
-      beth: "0x1b218670EcaDA5B15e2cE1879074e5D903b55334",
-      worm: "0x78eFE1D19d5F5e9AED2C1219401b00f74166A1d9",
+      beth: "0x198dbCAB39377f4219553Cc0e7133b7f37c6ca9e",
+      worm: "0xa9Ac4C659cBdA0db7b1f1b56ACEa83673c4d7C3a",
     },
   },
   anvil: {
