@@ -33,7 +33,7 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
     },
     contracts: {
       beth: "0x198dbCAB39377f4219553Cc0e7133b7f37c6ca9e",
-      worm: "0xa9Ac4C659cBdA0db7b1f1b56ACEa83673c4d7C3a",
+      worm: "0x633213a375d81C4d6aca288147BF260fB7811972",
     },
   },
   anvil: {
