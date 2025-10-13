@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Plus, Flame, Sprout, RefreshCw } from "lucide-react"
 import { keccak256, Signature, formatEther, parseEther } from "ethers"
-import { poseidon4, poseidon2 } from "poseidon-lite"
+import { poseidon6, poseidon2 } from "poseidon-lite"
 import { useWallet } from "@/hooks/use-wallet"
 import { ethers } from "ethers"
 import { useNetwork } from "@/hooks/use-network"
@@ -31,6 +31,9 @@ interface BurnKeyResult {
   index: number
   burnKey: string
   burnAddress: string
+  proverFee: string
+  broadcasterFee: string
+  revealAmount: string
   balance?: string
   isConsumed?: boolean
   checkingConsumption?: boolean
@@ -65,13 +68,22 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   const [isMintOperation, setIsMintOperation] = useState(false)
   const [selectedBurnKey, setSelectedBurnKey] = useState<string>("")
   const [mintStage, setMintStage] = useState<MintStage>({ stage: "confirm" })
-  const [selectedEndpoint, setSelectedEndpoint] = useState("https://worm-testnet.metatarz.xyz/proof")
+  const [selectedEndpoint, setSelectedEndpoint] = useState("https://worm-miner-3.darkube.app/proof")
   const [customEndpoint, setCustomEndpoint] = useState("")
   const [useCustomEndpoint, setUseCustomEndpoint] = useState(false)
   const [showConsumedAddresses, setShowConsumedAddresses] = useState(false)
 
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
+  const [newBroadcasterFee, setNewBroadcasterFee] = useState("0")
+  const [newProverFee, setNewProverFee] = useState("0")
+  const [newBurnAmount, setNewBurnAmount] = useState("")
+
   const STORAGE_KEY = `burn-key-results-${walletAddress}`
-  const PROVING_ENDPOINTS = ["https://worm-testnet.metatarz.xyz/proof", "https://worm-miner-3.darkube.app/proof", "http://localhost:8080/proof"]
+  const PROVING_ENDPOINTS = [
+    "https://worm-miner-3.darkube.app/proof",
+    "https://worm-testnet.metatarz.xyz/proof",
+    "http://localhost:8080/proof",
+  ]
 
   const saveToLocalStorage = (newResults: BurnKeyResult[]) => {
     try {
@@ -199,16 +211,31 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
     return startingPoint
   }
 
-  function deriveBurnAddress(burnKey: bigint, receiverAddr: string, feeAmount: bigint): string {
+  function deriveBurnAddress(
+    burnKey: bigint,
+    receiverAddr: string,
+    proverFee: bigint,
+    broadcasterFee: bigint,
+    revealAmount: bigint,
+  ): string {
     try {
       const receiverAddrBigInt = BigInt(receiverAddr)
 
       const prefixHex = "0x" + POSEIDON_BURN_ADDRESS_PREFIX.toString(16)
       const burnKeyHex = "0x" + burnKey.toString(16)
       const receiverHex = "0x" + receiverAddrBigInt.toString(16)
-      const feeHex = "0x" + feeAmount.toString(16)
+      const proverFeeHex = "0x" + proverFee.toString(16)
+      const broadcasterFeeHex = "0x" + broadcasterFee.toString(16)
+      const revealAmountHex = "0x" + revealAmount.toString(16)
 
-      const poseidonHash = poseidon4([prefixHex, burnKeyHex, receiverHex, feeHex])
+      const poseidonHash = poseidon6([
+        prefixHex,
+        burnKeyHex,
+        receiverHex,
+        proverFeeHex,
+        broadcasterFeeHex,
+        revealAmountHex,
+      ])
 
       const hashBytes = numberToBytes(BigInt(poseidonHash), 32)
       const addressBytes = hashBytes.slice(0, 20)
@@ -299,7 +326,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
     }
   }
 
-  async function findBurnKey(index: number) {
+  async function findBurnKey(index: number, proverFee: bigint, broadcasterFee: bigint, revealAmount: bigint) {
     setIsGenerating(true)
     setError(null)
 
@@ -309,11 +336,12 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
       }
 
       const receiverAddress = walletAddress
-      const feeAmount = BigInt(0)
       const minZeros = 2
 
       const receiverAddressBytes = hexToBytes(receiverAddress)
-      const feeBytes = numberToBytes(feeAmount, 32)
+      const proverFeeBytes = numberToBytes(proverFee, 32)
+      const broadcasterFeeBytes = numberToBytes(broadcasterFee, 32)
+      const revealAmountBytes = numberToBytes(revealAmount, 32)
       const eipBytes = new TextEncoder().encode("EIP-7503")
 
       const baseScalar = await getDeterministicStartingPoint()
@@ -328,7 +356,14 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
         }
 
         const burnKeyBytes = numberToBytes(burnKey, 32)
-        const combined = concatBytes(burnKeyBytes, receiverAddressBytes, feeBytes, eipBytes)
+        const combined = concatBytes(
+          burnKeyBytes,
+          receiverAddressBytes,
+          proverFeeBytes,
+          broadcasterFeeBytes,
+          revealAmountBytes,
+          eipBytes,
+        )
         const hexString =
           "0x" +
           Array.from(combined)
@@ -338,12 +373,21 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
         const hash = keccak256(hexString)
 
         if (hasMinZeroBytes(hash, minZeros)) {
-          const derivedBurnAddress = deriveBurnAddress(burnKey, receiverAddress, feeAmount)
+          const derivedBurnAddress = deriveBurnAddress(
+            burnKey,
+            receiverAddress,
+            proverFee,
+            broadcasterFee,
+            revealAmount,
+          )
 
           const newResult = {
             index,
             burnKey: burnKey.toString(),
             burnAddress: derivedBurnAddress,
+            proverFee: proverFee.toString(),
+            broadcasterFee: broadcasterFee.toString(),
+            revealAmount: revealAmount.toString(),
           }
 
           setResults((prev) => {
@@ -373,8 +417,26 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
     }
   }
 
-  const generateNextBurnKey = () => {
-    findBurnKey(currentCount)
+  const openGenerateDialog = () => {
+    setGenerateDialogOpen(true)
+    setNewBroadcasterFee("0")
+    setNewProverFee("0")
+    setNewBurnAmount("")
+    setError(null)
+  }
+
+  const handleGenerate = () => {
+    if (!newBurnAmount || Number.parseFloat(newBurnAmount) <= 0) {
+      setError("Please enter a valid burn amount")
+      return
+    }
+
+    const proverFee = parseEther(newProverFee || "0")
+    const broadcasterFee = parseEther(newBroadcasterFee || "0")
+    const revealAmount = parseEther(newBurnAmount)
+
+    setGenerateDialogOpen(false)
+    findBurnKey(currentCount, proverFee, broadcasterFee, revealAmount)
     setCurrentCount((prev) => prev + 1)
   }
 
@@ -388,7 +450,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
     setIsMintOperation(isMint)
     setMintStage({ stage: "confirm" })
     setBurnDialogOpen(true)
-    setBurnAmount("")
+    setBurnAmount(isMint ? "" : formatEther(result?.revealAmount || "0"))
     setMintError(null)
     setProgressMessage(null)
   }
@@ -445,7 +507,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
     const proofRequest = {
       amount: balance,
-      fee: "0",
+      fee: "0", // This should be the fee from the burn address, not the mint fee
       spend: balance,
       network: network,
       wallet_address: walletAddress,
@@ -555,7 +617,18 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
     try {
       const proofData = mintStage.proof
-      const { proof, block_number, nullifier_u256, remaining_coin, fee, spend, wallet_address } = proofData
+      // Extract reveal amount, prover fee, and broadcaster fee from proofData
+      const {
+        proof,
+        block_number,
+        nullifier_u256,
+        remaining_coin,
+        wallet_address,
+        reveal_amount,
+        prover_fee,
+        broadcaster_fee,
+        prover
+      } = proofData
 
       const _pA = [proof.proof.pi_a[0], proof.proof.pi_a[1]]
       const _pB = [
@@ -566,9 +639,11 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
       const _blockNumber = BigInt(block_number)
       const _nullifier = BigInt(nullifier_u256)
       const _remainingCoin = BigInt(remaining_coin)
-      const _fee = BigInt(fee)
-      const _spend = BigInt(spend)
+      const _revealAmount = BigInt(reveal_amount)
       const _receiver = wallet_address
+      const _proverFee = BigInt(prover_fee)
+      const _broadcasterFee = BigInt(broadcaster_fee)
+      const _prover = prover
 
       console.log("[v0] Calling mintCoin with parameters:", {
         _pA,
@@ -577,9 +652,10 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
         _blockNumber: _blockNumber.toString(),
         _nullifier: _nullifier.toString(),
         _remainingCoin: _remainingCoin.toString(),
-        _fee: _fee.toString(),
-        _spend: _spend.toString(),
         _receiver,
+        _revealAmount: _revealAmount.toString(),
+        _proverFee: _proverFee.toString(),
+        _broadcasterFee: _broadcasterFee.toString(),
       })
 
       const contractAddress = networkConfig.contracts.beth
@@ -599,9 +675,11 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
             { name: "_blockNumber", type: "uint256" },
             { name: "_nullifier", type: "uint256" },
             { name: "_remainingCoin", type: "uint256" },
-            { name: "_fee", type: "uint256" },
-            { name: "_spend", type: "uint256" },
-            { name: "_receiver", type: "address" },
+            { name: "_broadcasterFee", type: "uint256" },
+            { name: "_revealedAmount", type: "uint256" },
+            { name: "_revealedAmountReceiver", type: "address" },
+            { name: "_proverFee", type: "uint256" },
+            { name: "_prover", type: "address" },
           ],
           outputs: [],
         },
@@ -616,9 +694,11 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
         _blockNumber,
         _nullifier,
         _remainingCoin,
-        _fee,
-        _spend,
+        _broadcasterFee,
+        _revealAmount,
         _receiver,
+        _proverFee,
+        _prover,
       )
 
       console.log("[v0] mintCoin transaction sent:", tx.hash)
@@ -699,7 +779,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
               </div>
 
               <Button
-                onClick={generateNextBurnKey}
+                onClick={openGenerateDialog}
                 disabled={isGenerating || !walletAddress}
                 size="sm"
                 className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold"
@@ -746,8 +826,9 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                       variant="outline"
                       onClick={() => openBurnDialog(result.burnAddress)}
                       disabled={result.balance && Number.parseFloat(result.balance) > 0 && result.isConsumed}
-                      className={`ml-2 border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent ${result.isConsumed ? "opacity-50 cursor-not-allowed" : ""
-                        }`}
+                      className={`ml-2 border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent ${
+                        result.isConsumed ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                     >
                       {result.balance && Number.parseFloat(result.balance) > 0 ? (
                         <>
@@ -786,6 +867,92 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                 <AlertDescription className="text-red-300">{error}</AlertDescription>
               </Alert>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={generateDialogOpen} onOpenChange={setGenerateDialogOpen}>
+        <DialogContent className="bg-green-950/95 border-green-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-green-300">Generate Burn Address #{currentCount}</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Configure the parameters for your new burn address. The reveal amount will be equal to the burn amount.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="burnAmount" className="text-white">
+                Burn Amount (ETH) *
+              </Label>
+              <Input
+                id="burnAmount"
+                type="number"
+                placeholder="0.0"
+                value={newBurnAmount}
+                onChange={(e) => setNewBurnAmount(e.target.value)}
+                min="0"
+                step="0.001"
+                className="bg-green-950/60 border-green-700 text-white placeholder:text-gray-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">This will also be the reveal amount</p>
+            </div>
+
+            <div>
+              <Label htmlFor="broadcasterFee" className="text-white">
+                Broadcaster Fee (ETH)
+              </Label>
+              <Input
+                id="broadcasterFee"
+                type="number"
+                placeholder="0.0"
+                value={newBroadcasterFee}
+                onChange={(e) => setNewBroadcasterFee(e.target.value)}
+                min="0"
+                step="0.001"
+                className="bg-green-950/60 border-green-700 text-white placeholder:text-gray-400"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="proverFee" className="text-white">
+                Prover Fee (ETH)
+              </Label>
+              <Input
+                id="proverFee"
+                type="number"
+                placeholder="0.0"
+                value={newProverFee}
+                onChange={(e) => setNewProverFee(e.target.value)}
+                min="0"
+                step="0.001"
+                className="bg-green-950/60 border-green-700 text-white placeholder:text-gray-400"
+              />
+            </div>
+
+            {error && (
+              <Alert className="bg-red-900/30 border-red-700">
+                <AlertDescription className="text-red-300">{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setGenerateDialogOpen(false)}
+                className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800 bg-transparent"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGenerate}
+                disabled={!newBurnAmount || Number.parseFloat(newBurnAmount) <= 0}
+                className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Generate
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -831,10 +998,11 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
               {mintStage.stage === "generate" && progressMessage && (
                 <div
-                  className={`p-4 border-2 rounded-lg shadow-lg ${mintError
+                  className={`p-4 border-2 rounded-lg shadow-lg ${
+                    mintError
                       ? "bg-gradient-to-r from-red-900/40 to-red-800/40 border-red-500/50"
                       : "bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-blue-500/50"
-                    }`}
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
@@ -973,15 +1141,11 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                 <Input
                   id="burnAmount"
                   type="number"
-                  placeholder="0.0"
                   value={burnAmount}
-                  onChange={(e) => setBurnAmount(e.target.value)}
-                  min="0"
-                  max="1"
-                  step="0.001"
-                  className="bg-green-950/60 border-green-700 text-white placeholder:text-gray-400"
+                  readOnly
+                  className="bg-green-950/60 border-green-700 text-white placeholder:text-gray-400 cursor-not-allowed"
                 />
-                <p className="text-xs text-gray-400 mt-1">Maximum: 1 ETH</p>
+                <p className="text-xs text-gray-400 mt-1">This is the predetermined burn amount for this address</p>
               </div>
 
               <div className="flex gap-3">
@@ -994,9 +1158,7 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                 </Button>
                 <Button
                   onClick={handleBurn}
-                  disabled={
-                    !burnAmount || Number.parseFloat(burnAmount) <= 0 || Number.parseFloat(burnAmount) > 1 || isBurning
-                  }
+                  disabled={!burnAmount || Number.parseFloat(burnAmount) <= 0 || isBurning}
                   className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-black font-semibold"
                 >
                   {isBurning ? (
