@@ -32,8 +32,8 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       decimals: 18,
     },
     contracts: {
-      beth: "0x198dbCAB39377f4219553Cc0e7133b7f37c6ca9e",
-      worm: "0x7745F3fD93ad92DA828363Dc26EDbc9b2C788935",
+      beth: "0xEc71903c94fe79634164c0ad1ba67be41f37e804",
+      worm: "0xF25453f75ff520f9cE922E689B1cCE65DE3dC646",
     },
   },
   anvil: {
@@ -47,8 +47,8 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       decimals: 18,
     },
     contracts: {
-      beth: "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
-      worm: "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24",
+      beth: "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
+      worm: "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
     },
   },
 }

@@ -17,8 +17,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Loader2, Plus, Flame, Sprout, RefreshCw } from "lucide-react"
-import { keccak256, Signature, formatEther, parseEther } from "ethers"
-import { poseidon6, poseidon2 } from "poseidon-lite"
+import { keccak256, Signature, formatEther, parseEther, AbiCoder, solidityPacked } from "ethers"
+import { poseidon4, poseidon2 } from "poseidon-lite"
 import { useWallet } from "@/hooks/use-wallet"
 import { ethers } from "ethers"
 import { useNetwork } from "@/hooks/use-network"
@@ -223,18 +223,17 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
       const prefixHex = "0x" + POSEIDON_BURN_ADDRESS_PREFIX.toString(16)
       const burnKeyHex = "0x" + burnKey.toString(16)
-      const receiverHex = "0x" + receiverAddrBigInt.toString(16)
-      const proverFeeHex = "0x" + proverFee.toString(16)
-      const broadcasterFeeHex = "0x" + broadcasterFee.toString(16)
       const revealAmountHex = "0x" + revealAmount.toString(16)
+      const preimage = solidityPacked(["uint256", "uint256", "address"],
+        [broadcasterFee, proverFee, receiverAddr]
+      );
+      const burnExtraCommit = "0x" + (ethers.toBigInt(keccak256(preimage)) >> BigInt(8)).toString(16);
 
-      const poseidonHash = poseidon6([
+      const poseidonHash = poseidon4([
         prefixHex,
         burnKeyHex,
-        receiverHex,
-        proverFeeHex,
-        broadcasterFeeHex,
         revealAmountHex,
+        burnExtraCommit
       ])
 
       const hashBytes = numberToBytes(BigInt(poseidonHash), 32)
@@ -337,11 +336,12 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
       const receiverAddress = walletAddress
       const minZeros = 2
-
-      const receiverAddressBytes = hexToBytes(receiverAddress)
-      const proverFeeBytes = numberToBytes(proverFee, 32)
-      const broadcasterFeeBytes = numberToBytes(broadcasterFee, 32)
+      const preimage = solidityPacked(["uint256", "uint256", "address"],
+        [broadcasterFee, proverFee, receiverAddress]
+      );
+      const burnExtraCommit = ethers.toBigInt(keccak256(preimage)) >> BigInt(8);
       const revealAmountBytes = numberToBytes(revealAmount, 32)
+      const burnExtraCommitBytes = numberToBytes(burnExtraCommit, 32)
       const eipBytes = new TextEncoder().encode("EIP-7503")
 
       const baseScalar = await getDeterministicStartingPoint()
@@ -358,10 +358,8 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
         const burnKeyBytes = numberToBytes(burnKey, 32)
         const combined = concatBytes(
           burnKeyBytes,
-          receiverAddressBytes,
-          proverFeeBytes,
-          broadcasterFeeBytes,
           revealAmountBytes,
+          burnExtraCommitBytes,
           eipBytes,
         )
         const hexString =
@@ -491,6 +489,8 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
     const result = results.find((r) => r.burnAddress === selectedBurnAddress)
     const balance = result?.balance || "0"
+    const proverFee = formatEther(result?.proverFee)
+    const broadcasterFee = formatEther(result?.broadcasterFee)
 
     let network = "sepolia"
     try {
@@ -507,7 +507,8 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
     const proofRequest = {
       amount: balance,
-      fee: "0", // This should be the fee from the burn address, not the mint fee
+      prover_fee: proverFee,
+      broadcaster_fee: broadcasterFee,
       spend: balance,
       network: network,
       wallet_address: walletAddress,
@@ -680,12 +681,29 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
             { name: "_revealedAmountReceiver", type: "address" },
             { name: "_proverFee", type: "uint256" },
             { name: "_prover", type: "address" },
+            { name: "_receiverPostMintHook", type: "bytes" },
+            { name: "_broadcasterFeePostMintHook", type: "bytes" },
           ],
           outputs: [],
         },
       ]
 
       const contract = new ethers.Contract(contractAddress, mintCoinABI, signer)
+      console.log([
+
+        _pA,
+        _pB,
+        _pC,
+        _blockNumber,
+        _nullifier,
+        _remainingCoin,
+        _broadcasterFee,
+        _revealAmount,
+        _receiver,
+        _proverFee,
+        _prover,
+      
+      ]);
 
       const tx = await contract.mintCoin(
         _pA,
@@ -699,6 +717,8 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
         _receiver,
         _proverFee,
         _prover,
+        "0x",
+        "0x"
       )
 
       console.log("[v0] mintCoin transaction sent:", tx.hash)
@@ -826,9 +846,8 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
                       variant="outline"
                       onClick={() => openBurnDialog(result.burnAddress)}
                       disabled={result.balance && Number.parseFloat(result.balance) > 0 && result.isConsumed}
-                      className={`ml-2 border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent ${
-                        result.isConsumed ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
+                      className={`ml-2 border-green-600 text-green-300 hover:bg-green-900/50 bg-transparent ${result.isConsumed ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
                     >
                       {result.balance && Number.parseFloat(result.balance) > 0 ? (
                         <>
@@ -998,11 +1017,10 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
 
               {mintStage.stage === "generate" && progressMessage && (
                 <div
-                  className={`p-4 border-2 rounded-lg shadow-lg ${
-                    mintError
-                      ? "bg-gradient-to-r from-red-900/40 to-red-800/40 border-red-500/50"
-                      : "bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-blue-500/50"
-                  }`}
+                  className={`p-4 border-2 rounded-lg shadow-lg ${mintError
+                    ? "bg-gradient-to-r from-red-900/40 to-red-800/40 border-red-500/50"
+                    : "bg-gradient-to-r from-blue-900/40 to-purple-900/40 border-blue-500/50"
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
