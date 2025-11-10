@@ -27,7 +27,7 @@ export function Tokenomics() {
                   <p className="text-sm text-gray-400">WORM per epoch</p>
                 </div>
                 <div className="bg-green-900/50 rounded-lg p-4">
-                  <p className="text-2xl font-bold text-green-300 font-mono">30 minutes</p>
+                  <p className="text-2xl font-bold text-green-300 font-mono">10 minutes</p>
                   <p className="text-sm text-gray-400">Epoch time</p>
                 </div>
               </div>

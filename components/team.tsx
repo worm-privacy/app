@@ -30,13 +30,6 @@ export function Team() {
       avatar: "/artem.jpeg",
     },
     {
-      name: "Sarah Kaviani",
-      role: "Software Engineer",
-      description: "I'm a software engineer passionate about blockchain, especially zero-knowledge proofs, and I enjoy building cool, privacy-focused solutions",
-      github: "https://github.com/sarakvn1",
-      avatar: "/sarah.jpg",
-    },
-    {
       name: "Sage Tega",
       role: "Growth Lead",
       description: "Leading growth and partnerships of the WORM",

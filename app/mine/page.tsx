@@ -107,7 +107,7 @@ function MinePageContent() {
                       <Flame className="ml-2 w-4 h-4" />
                     </Button>
                   </BurnAddressesDialog>
-                  <p className="text-xs text-gray-400 text-center">Max 1 ETH per transaction</p>
+                  <p className="text-xs text-gray-400 text-center">Max 10 ETH per transaction</p>
                 </CardContent>
               </Card>
 
