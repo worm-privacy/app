@@ -326,6 +326,9 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
   }
 
   async function findBurnKey(index: number, proverFee: bigint, broadcasterFee: bigint, revealAmount: bigint) {
+    if(revealAmount > BigInt("10000000000000000000")) {
+      throw "Cannot burn more than 10 ETH!";
+    }
     setIsGenerating(true)
     setError(null)
 
