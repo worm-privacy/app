@@ -51,7 +51,7 @@ export function BurnActivity() {
   const calculateEpochTimeLeft = (startingTimestamp: number, blockTimestamp: number): number => {
     if (startingTimestamp === 0 || blockTimestamp === 0) return 0
 
-    const epochDuration = 1800 // 30 minutes in seconds
+    const epochDuration = 600 // 30 minutes in seconds
     const now = Math.floor(Date.now() / 1000) // Current system time in seconds
     const blockAge = now - blockTimestamp // How many seconds ago was the block
     const adjustedBlockTime = blockTimestamp + blockAge // Estimate current blockchain time

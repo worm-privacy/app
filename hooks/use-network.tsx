@@ -17,6 +17,7 @@ interface NetworkConfig {
   contracts: {
     beth: string
     worm: string
+    poolv3: string
   }
 }
 
@@ -32,8 +33,9 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       decimals: 18,
     },
     contracts: {
-      beth: "0xEc71903c94fe79634164c0ad1ba67be41f37e804",
-      worm: "0xF25453f75ff520f9cE922E689B1cCE65DE3dC646",
+      beth: "0x716bC7e331c9Da551e5Eb6A099c300db4c08E994",
+      worm: "0xcBdF9890B5935F01B2f21583d1885CdC8389eb5F",
+      poolv3: "0x646b5eB499411390448b5e21838aCB8B2FF548dA",
     },
   },
   anvil: {
@@ -49,6 +51,7 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
     contracts: {
       beth: "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
       worm: "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
+      poolv3: "0x",
     },
   },
 }

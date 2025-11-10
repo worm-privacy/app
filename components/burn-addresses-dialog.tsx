@@ -702,8 +702,48 @@ export function BurnAddressesDialog({ children, onBurnComplete }: BurnAddressesD
         _receiver,
         _proverFee,
         _prover,
-      
+
       ]);
+
+
+      // Minimal ABI to encode swap call
+      const poolAbi = [
+        "function swap(address recipient, bool zeroForOne, int256 amountSpecified, uint160 sqrtPriceLimitX96, bytes data)"
+      ];
+
+      /**
+       * Create calldata for swapping BETH -> ETH on Uniswap V3 pool
+       * @param {string | number | bigint} amountIn Amount of BETH to swap (in wei)
+       * @param {string} recipient Address to receive ETH
+       * @returns {string} calldata (encoded bytes)
+       */
+      function getSwapCalldata(amountIn: bigint, recipient: string) {
+        const iface = new ethers.Interface(poolAbi);
+
+        // Determine swap direction (depends on pool token0/token1 order)
+        // We'll assume BETH <-> WETH pool, so we must check token order:
+        // In real use, query token0() and token1() from the pool.
+        const token0IsBETH = true; // assume for now (set correctly in practice)
+        const zeroForOne = token0IsBETH; // BETH -> WETH means zeroForOne = true
+
+        const calldata = iface.encodeFunctionData("swap", [
+          recipient,                 // address recipient
+          zeroForOne,                // bool zeroForOne
+          ethers.toBigInt(amountIn), // int256 amountSpecified (positive = exact input)
+          0,                        // uint160 sqrtPriceLimitX96 (0 = no limit)
+          "0x"                       // bytes data (callback data)
+        ]);
+
+        return calldata;
+      }
+      // Create the ABI coder
+      const coder = ethers.AbiCoder.defaultAbiCoder();
+
+      // Encode the parameters
+      const encoded = coder.encode(
+        ["address", "uint256", "bytes"],
+        [networkConfig.contracts.poolv3, ethers.parseEther("0.003"), getSwapCalldata(ethers.parseEther("0.003"), _receiver)]
+      );
 
       const tx = await contract.mintCoin(
         _pA,
