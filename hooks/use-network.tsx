@@ -37,7 +37,7 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       beth: "0x716bC7e331c9Da551e5Eb6A099c300db4c08E994",
       worm: "0xcBdF9890B5935F01B2f21583d1885CdC8389eb5F",
       poolv3: "0x646b5eB499411390448b5e21838aCB8B2FF548dA",
-      kol: "0x96E6000e18906556905379C2f9A0592A2F4Ccfe5"
+      kol: "0x988DEa3bc4C3a9f7FcD33710119AA0F2B4b84f67"
     },
   },
   anvil: {
