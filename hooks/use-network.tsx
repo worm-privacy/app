@@ -18,6 +18,7 @@ interface NetworkConfig {
     beth: string
     worm: string
     poolv3: string
+    kol: string
   }
 }
 
@@ -36,6 +37,7 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       beth: "0x716bC7e331c9Da551e5Eb6A099c300db4c08E994",
       worm: "0xcBdF9890B5935F01B2f21583d1885CdC8389eb5F",
       poolv3: "0x646b5eB499411390448b5e21838aCB8B2FF548dA",
+      kol: "0x1767CbEa99B77DaB363d1Ff3E3CAa017dc444768"
     },
   },
   anvil: {
@@ -52,6 +54,7 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       beth: "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
       worm: "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
       poolv3: "0x",
+      kol: "0x",
     },
   },
 }
