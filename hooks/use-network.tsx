@@ -18,6 +18,7 @@ interface NetworkConfig {
     beth: string
     worm: string
     poolv3: string
+    staking: string
     kol: string
   }
 }
@@ -37,6 +38,7 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       beth: "0x716bC7e331c9Da551e5Eb6A099c300db4c08E994",
       worm: "0xcBdF9890B5935F01B2f21583d1885CdC8389eb5F",
       poolv3: "0x646b5eB499411390448b5e21838aCB8B2FF548dA",
+      staking: "0x5eCCd2b6Eb894b9d163606816df448b89CE8DB37",
       kol: "0x988DEa3bc4C3a9f7FcD33710119AA0F2B4b84f67"
     },
   },
@@ -54,6 +56,7 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       beth: "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
       worm: "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
       poolv3: "0x",
+      staking: "0x",
       kol: "0x",
     },
   },
