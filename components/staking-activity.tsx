@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { useWallet } from "@/hooks/use-wallet"
 import { useNetwork } from "@/hooks/use-network"
 import { Loader2, Lock } from 'lucide-react'
 import { ethers } from "ethers"
+import { ClaimWeekRewardDialog } from "./claim-week-reward-dialog"
 
 interface StakeInfo {
   week: number
@@ -59,6 +61,8 @@ export function StakingActivity() {
   const [loading, setLoading] = useState(true)
   const [currentWeek, setCurrentWeek] = useState<number>(0)
   const [isMobile, setIsMobile] = useState(false)
+  const [claimDialogOpen, setClaimDialogOpen] = useState(false)
+  const [selectedWeek, setSelectedWeek] = useState<StakeInfo | null>(null)
   
   const { address } = useWallet()
   const { networkConfig } = useNetwork()
@@ -155,6 +159,11 @@ export function StakingActivity() {
   const gridCols = isMobile ? "grid-cols-5" : "grid-cols-9"
   const weekRange = isMobile ? 2 : 4
 
+  const handleClaimClick = (week: StakeInfo) => {
+    setSelectedWeek(week)
+    setClaimDialogOpen(true)
+  }
+
   if (loading) {
     return (
       <section className="py-12 bg-black">
@@ -242,12 +251,31 @@ export function StakingActivity() {
                         <div
                           className={`text-xs font-mono ${week.isCurrent ? "text-yellow-300" : "text-green-300"}`}
                         >
-                          {Number.parseFloat(week.totalStaked).toFixed(2)}
+                          {Number.parseFloat(week.totalStaked).toFixed(2)} WORM
+                        </div>
+                        <div className="text-xs font-mono text-purple-300">
+                          {Number.parseFloat(week.epochRewards).toFixed(4)} BETH
                         </div>
                         {userStaked > 0 && (
                           <div className="text-xs font-mono text-cyan-300">
                             {userStaked.toFixed(2)} WORM
                           </div>
+                        )}
+                        
+                        {userStaked > 0 && (
+                          <Button
+                            size="sm"
+                            variant={week.isPast ? "default" : "ghost"}
+                            disabled={!week.isPast}
+                            onClick={() => handleClaimClick(week)}
+                            className={`mt-1 text-xs h-6 px-2 ${
+                              week.isPast 
+                                ? "bg-purple-600 hover:bg-purple-700 text-white" 
+                                : "opacity-50 cursor-not-allowed"
+                            }`}
+                          >
+                            Claim
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -272,10 +300,22 @@ export function StakingActivity() {
                   <div className="w-3 h-3 bg-cyan-500/40 rounded"></div>
                   <span className="text-xs text-gray-400">Your Stake</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-500/40 rounded"></div>
+                  <span className="text-xs text-gray-400">BETH Rewards</span>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
+        
+        {selectedWeek && (
+          <ClaimWeekRewardDialog
+            open={claimDialogOpen}
+            onOpenChange={setClaimDialogOpen}
+            week={selectedWeek}
+          />
+        )}
       </div>
     </section>
   )
