@@ -2,15 +2,26 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Users, UserPlus } from "lucide-react"
+import { ArrowLeft, Users, UserPlus } from 'lucide-react'
 import Link from "next/link"
 import { WalletProvider, useWallet } from "@/hooks/use-wallet"
 import { NetworkProvider } from "@/hooks/use-network"
 import { NetworkSwitcher } from "@/components/network-switcher"
 import { ParticipateKOLDialog } from "@/components/participate-kol-dialog"
+import { useEffect, useState } from "react"
 
 function KOLPageContent() {
   const { isConnected, address, connectWallet, disconnectWallet } = useWallet()
+  const [parentCodeFromUrl, setParentCodeFromUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.slice(1) // Remove the '#' character
+      if (hash) {
+        setParentCodeFromUrl(hash)
+      }
+    }
+  }, [])
 
   const formatAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
@@ -60,9 +71,9 @@ function KOLPageContent() {
               <Users className="w-4 h-4 text-green-400" />
               <span className="font-mono">KOL Network</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-green-300 font-mono">Join the KOL network</h1>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-green-300 font-mono">Join the KOL Network</h1>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Use an invite code to join the network and start promoting WORM!
+              Use an invite code to join the network and start promoting WORM Privacy
             </p>
           </div>
 
@@ -91,7 +102,7 @@ function KOLPageContent() {
                     </ul>
                   </div>
 
-                  <ParticipateKOLDialog>
+                  <ParticipateKOLDialog parentCodeFromUrl={parentCodeFromUrl}>
                     <Button
                       size="lg"
                       className="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white"

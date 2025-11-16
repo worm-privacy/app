@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { useEffect } from "react"
 import { useState } from "react"
 import {
   Dialog,
@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWallet } from "@/hooks/use-wallet"
 import { useNetwork } from "@/hooks/use-network"
-import { Loader2, CheckCircle2, AlertCircle, ExternalLink, Twitter, MessageCircle, Github } from "lucide-react"
+import { Loader2, CheckCircle2, AlertCircle, ExternalLink, Twitter, MessageCircle, Github } from 'lucide-react'
 import { ethers } from "ethers"
 import { getRevertReason } from "@/lib/error-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -24,23 +24,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 interface ParticipateKOLDialogProps {
   children: React.ReactNode
+  parentCodeFromUrl?: string | null
 }
 
-const KOL_NETWORK_ABI = [
-  "function participate(string calldata parentCode, string calldata userCode, string calldata metadata, bool transferWorm) external",
-  "function kols(address) external view returns (address parent, bool isKOL, uint256 childCount, string inviteCode, string metadata)",
-  "function codeToKOL(string) external view returns (address)",
-  "function wormToken() external view returns (address)",
-  "function SIGNUP_COST() external view returns (uint256)",
-]
-
-const ERC20_ABI = [
-  "function approve(address spender, uint256 amount) external returns (bool)",
-  "function allowance(address owner, address spender) external view returns (uint256)",
-  "function balanceOf(address account) external view returns (uint256)",
-]
-
-export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
+export function ParticipateKOLDialog({ children, parentCodeFromUrl }: ParticipateKOLDialogProps) {
   const [open, setOpen] = useState(false)
   const [parentCode, setParentCode] = useState("")
   const [userCode, setUserCode] = useState("")
@@ -62,10 +49,17 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [txHash, setTxHash] = useState<string | null>(null)
+  const [successfulInviteCode, setSuccessfulInviteCode] = useState<string>("")
 
   const { signer, address } = useWallet()
   const { networkConfig } = useNetwork()
   const { toast } = useToast()
+
+  useEffect(() => {
+    if (open && parentCodeFromUrl) {
+      setParentCode(parentCodeFromUrl)
+    }
+  }, [open, parentCodeFromUrl])
 
   const checkCodeAvailability = async () => {
     if (!signer || !userCode || userCode.trim().length === 0) {
@@ -177,6 +171,7 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
 
       await tx.wait()
 
+      setSuccessfulInviteCode(userCode.trim())
       setSuccess(true)
     } catch (err: any) {
       console.error("Error participating:", err)
@@ -204,8 +199,31 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
       setSuccess(false)
       setError(null)
       setTxHash(null)
+      setSuccessfulInviteCode("")
     }, 200)
   }
+
+  const getShareableLink = () => {
+    if (typeof window !== "undefined") {
+      const baseUrl = window.location.origin
+      return `${baseUrl}/app/kol#${successfulInviteCode}`
+    }
+    return ""
+  }
+
+  const KOL_NETWORK_ABI = [
+    "function participate(string calldata parentCode, string calldata userCode, string calldata metadata, bool transferWorm) external",
+    "function kols(address) external view returns (address parent, bool isKOL, uint256 childCount, string inviteCode, string metadata)",
+    "function codeToKOL(string) external view returns (address)",
+    "function wormToken() external view returns (address)",
+    "function SIGNUP_COST() external view returns (uint256)",
+  ]
+
+  const ERC20_ABI = [
+    "function approve(address spender, uint256 amount) external returns (bool)",
+    "function allowance(address owner, address spender) external view returns (uint256)",
+    "function balanceOf(address account) external view returns (uint256)",
+  ]
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => (isOpen ? setOpen(true) : handleClose())}>
@@ -229,8 +247,12 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
                 placeholder="Enter parent's invite code..."
                 value={parentCode}
                 onChange={(e) => setParentCode(e.target.value)}
-                className="bg-black border-green-800 text-white font-mono"
+                readOnly={!!parentCodeFromUrl}
+                className={`bg-black border-green-800 text-white font-mono ${parentCodeFromUrl ? "opacity-75 cursor-not-allowed" : ""}`}
               />
+              {parentCodeFromUrl && (
+                <p className="text-xs text-blue-400">Invite code set from referral link</p>
+              )}
               <p className="text-xs text-gray-400">The invite code from the KOL who invited you</p>
             </div>
 
@@ -276,7 +298,6 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
             <div className="border-t border-green-800/50 pt-4 space-y-4">
               <h4 className="text-sm font-semibold text-green-300">Complete These Tasks</h4>
 
-              {/* Task 1: Follow on X */}
               <div className="flex items-start gap-3 p-3 bg-black/50 border border-green-800/50 rounded">
                 <Checkbox
                   id="twitter"
@@ -309,7 +330,6 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
                 </div>
               </div>
 
-              {/* Task 2: Join Discord */}
               <div className="flex items-start gap-3 p-3 bg-black/50 border border-green-800/50 rounded">
                 <Checkbox
                   id="discord"
@@ -342,7 +362,6 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
                 </div>
               </div>
 
-              {/* Task 3: Post Tweet */}
               <div className="flex items-start gap-3 p-3 bg-black/50 border border-green-800/50 rounded">
                 <Checkbox
                   id="tweet"
@@ -367,7 +386,6 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
                 </div>
               </div>
 
-              {/* Task 4: GitHub (Optional) */}
               <div className="flex items-start gap-3 p-3 bg-black/50 border border-green-800/30 rounded opacity-90">
                 <Checkbox
                   id="github"
@@ -399,7 +417,6 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
                 </div>
               </div>
 
-              {/* Task 5: Transfer WORM (Optional) */}
               <div className="flex items-start gap-3 p-3 bg-black/50 border border-green-800/30 rounded opacity-90">
                 <Checkbox
                   id="transfer"
@@ -500,12 +517,39 @@ export function ParticipateKOLDialog({ children }: ParticipateKOLDialogProps) {
             <div className="text-center space-y-2">
               <h3 className="text-xl font-bold text-green-300">Successfully Joined!</h3>
               <p className="text-gray-400">You are now part of the KOL network</p>
-              <p className="text-sm text-green-300 font-mono">Your invite code: {userCode}</p>
+              <p className="text-sm text-green-300 font-mono">Your invite code: {successfulInviteCode}</p>
               {txHash && (
                 <p className="text-xs text-gray-400 font-mono">
                   Transaction: {txHash.slice(0, 10)}...{txHash.slice(-8)}
                 </p>
               )}
+            </div>
+
+            <div className="bg-purple-950/30 border border-purple-800 rounded p-4 space-y-2">
+              <p className="text-sm font-semibold text-purple-300">Share your referral link:</p>
+              <div className="flex gap-2">
+                <Input
+                  value={getShareableLink()}
+                  readOnly
+                  className="bg-black border-purple-700 text-white font-mono text-sm flex-1"
+                />
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(getShareableLink())
+                    toast({
+                      title: "Copied!",
+                      description: "Referral link copied to clipboard",
+                    })
+                  }}
+                  variant="outline"
+                  className="border-purple-600 text-purple-300 hover:bg-purple-900/50 bg-transparent"
+                >
+                  Copy
+                </Button>
+              </div>
+              <p className="text-xs text-gray-400">
+                Share this link with others to invite them to join under your network
+              </p>
             </div>
 
             <div className="bg-green-950/30 border border-green-800 rounded p-3 text-sm text-green-300">
