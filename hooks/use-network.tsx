@@ -39,7 +39,7 @@ const NETWORK_CONFIGS: Record<NetworkType, NetworkConfig> = {
       worm: "0xcBdF9890B5935F01B2f21583d1885CdC8389eb5F",
       poolv3: "0x646b5eB499411390448b5e21838aCB8B2FF548dA",
       staking: "0x5eCCd2b6Eb894b9d163606816df448b89CE8DB37",
-      kol: "0x988DEa3bc4C3a9f7FcD33710119AA0F2B4b84f67"
+      kol: "0x3bFcAbCdc6c38807D60Ddf7C9Df12e598E8ada2C"
     },
   },
   anvil: {
