@@ -95,7 +95,6 @@ function KOLPageContent() {
                   <div className="bg-black/30 border border-green-800/50 rounded-lg p-4">
                     <h4 className="text-sm font-semibold text-green-300 mb-2">Requirements:</h4>
                     <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside">
-                      <li>0.1 WORM tokens (signup cost)</li>
                       <li>Valid invite code from an existing KOL</li>
                       <li>Your unique invite code (must not be taken)</li>
                       <li>Social media accounts for promotion</li>
@@ -135,10 +134,6 @@ function KOLPageContent() {
                 <p>
                   Each KOL receives a unique invite code that new users can use to join the network. When users join
                   using your code, they become part of your referral tree.
-                </p>
-                <p className="text-yellow-400">
-                  Note: Each new participant must pay 0.1 WORM token to join the network. Make sure you have approved
-                  the contract to spend your WORM tokens before attempting to participate.
                 </p>
               </CardContent>
             </Card>

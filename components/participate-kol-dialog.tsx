@@ -232,7 +232,7 @@ export function ParticipateKOLDialog({ children, parentCodeFromUrl }: Participat
         <DialogHeader>
           <DialogTitle className="text-green-300">Join KOL Network</DialogTitle>
           <DialogDescription className="text-gray-400">
-            Complete the tasks below to participate in the network (costs 0.1 WORM)
+            Complete the tasks below to participate in the network
           </DialogDescription>
         </DialogHeader>
 
