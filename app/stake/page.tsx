@@ -23,7 +23,7 @@ function StakePageContent() {
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto px-6 py-6 flex justify-between items-center">
-        <Link href="/" className="inline-flex items-center gap-2 text-green-300 hover:text-green-200 transition-colors">
+        <Link href="https://worm.cx" className="inline-flex items-center gap-2 text-green-300 hover:text-green-200 transition-colors">
           <ArrowLeft className="w-4 h-4" />
           Back to Home
         </Link>
