@@ -135,6 +135,9 @@ function KOLPageContent() {
                   Each KOL receives a unique invite code that new users can use to join the network. When users join
                   using your code, they become part of your referral tree.
                 </p>
+                <p>
+                  Each KOL will receive 10% of its child promoter's score
+                </p>
               </CardContent>
             </Card>
           </div>
