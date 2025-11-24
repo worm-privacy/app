@@ -11,6 +11,7 @@ import { useBalances } from "@/hooks/use-balances"
 import { LockTokensDialog } from "@/components/lock-tokens-dialog"
 import { ClaimStakingRewardsDialog } from "@/components/claim-staking-rewards-dialog"
 import { StakingActivity } from "@/components/staking-activity"
+import { UserStakesList } from "@/components/user-stakes-list"
 
 function StakePageContent() {
   const { isConnected, address, connectWallet, disconnectWallet, error } = useWallet()
@@ -111,6 +112,7 @@ function StakePageContent() {
       </section>
 
       <StakingActivity />
+      <UserStakesList />
     </div>
   )
 }
