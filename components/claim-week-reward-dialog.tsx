@@ -1,12 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useWallet } from "@/hooks/use-wallet"
 import { useNetwork } from "@/hooks/use-network"
 import { useContract } from "@/hooks/use-ethers"
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { getRevertReason } from "@/lib/error-utils"
 
@@ -30,20 +37,20 @@ const STAKING_ABI = [
   {
     inputs: [
       { name: "_fromEpoch", type: "uint256" },
-      { name: "_count", type: "uint256" }
+      { name: "_count", type: "uint256" },
     ],
     name: "claimReward",
     outputs: [],
     stateMutability: "nonpayable",
-    type: "function"
-  }
+    type: "function",
+  },
 ] as const
 
 export function ClaimWeekRewardDialog({ open, onOpenChange, week }: ClaimWeekRewardDialogProps) {
   const [claiming, setClaiming] = useState(false)
   const { address } = useWallet()
   const { networkConfig } = useNetwork()
-  const { getContract } = useContract()
+  const { writeContract } = useContract(networkConfig.contracts.staking, STAKING_ABI)
 
   // Calculate user's expected reward
   const userStaked = Number.parseFloat(week.userStaked)
@@ -63,14 +70,9 @@ export function ClaimWeekRewardDialog({ open, onOpenChange, week }: ClaimWeekRew
 
     try {
       setClaiming(true)
-      
-      const stakingContract = getContract(
-        networkConfig.contracts.staking,
-        STAKING_ABI
-      )
 
-      const tx = await stakingContract.claimReward(week.week, 1)
-      
+      const tx = await writeContract("claimReward", [BigInt(week.week), BigInt(1)])
+
       toast({
         title: "Transaction Submitted",
         description: "Claiming your rewards...",
@@ -101,9 +103,7 @@ export function ClaimWeekRewardDialog({ open, onOpenChange, week }: ClaimWeekRew
       <DialogContent className="bg-gray-900 border-purple-800">
         <DialogHeader>
           <DialogTitle className="text-purple-300">Claim Week {week.week} Rewards</DialogTitle>
-          <DialogDescription className="text-gray-400">
-            Confirm your reward claim details below
-          </DialogDescription>
+          <DialogDescription className="text-gray-400">Confirm your reward claim details below</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -134,9 +134,7 @@ export function ClaimWeekRewardDialog({ open, onOpenChange, week }: ClaimWeekRew
 
             <div className="flex justify-between items-center">
               <span className="text-sm font-semibold text-gray-300">You Will Receive:</span>
-              <span className="text-base font-bold text-purple-400 font-mono">
-                {userReward.toFixed(4)} BETH
-              </span>
+              <span className="text-base font-bold text-purple-400 font-mono">{userReward.toFixed(4)} BETH</span>
             </div>
           </div>
         </div>
@@ -150,11 +148,7 @@ export function ClaimWeekRewardDialog({ open, onOpenChange, week }: ClaimWeekRew
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleClaim}
-            disabled={claiming}
-            className="bg-purple-600 hover:bg-purple-700"
-          >
+          <Button onClick={handleClaim} disabled={claiming} className="bg-purple-600 hover:bg-purple-700">
             {claiming ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
